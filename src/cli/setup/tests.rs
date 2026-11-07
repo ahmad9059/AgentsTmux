@@ -582,249 +582,251 @@ fn full_output_snapshot() {
 }
 
 const EXPECTED_FULL_OUTPUT: &str = r#"{
+  "version": "__VERSION__",
+  "hook_script": "/fake/hook.sh",
   "agents": {
     "claude": {
       "config_path": "~/.claude/settings.json",
       "hooks": [
         {
-          "command": "bash /fake/hook.sh claude session-start",
+          "trigger": "SessionStart",
+          "matcher": null,
           "event": "session-start",
-          "matcher": null,
-          "trigger": "SessionStart"
+          "command": "bash /fake/hook.sh claude session-start"
         },
         {
-          "command": "bash /fake/hook.sh claude session-end",
+          "trigger": "SessionEnd",
+          "matcher": null,
           "event": "session-end",
-          "matcher": null,
-          "trigger": "SessionEnd"
+          "command": "bash /fake/hook.sh claude session-end"
         },
         {
-          "command": "bash /fake/hook.sh claude user-prompt-submit",
+          "trigger": "UserPromptSubmit",
+          "matcher": null,
           "event": "user-prompt-submit",
-          "matcher": null,
-          "trigger": "UserPromptSubmit"
+          "command": "bash /fake/hook.sh claude user-prompt-submit"
         },
         {
-          "command": "bash /fake/hook.sh claude notification",
+          "trigger": "Notification",
+          "matcher": null,
           "event": "notification",
-          "matcher": null,
-          "trigger": "Notification"
+          "command": "bash /fake/hook.sh claude notification"
         },
         {
-          "command": "bash /fake/hook.sh claude stop",
+          "trigger": "Stop",
+          "matcher": null,
           "event": "stop",
-          "matcher": null,
-          "trigger": "Stop"
+          "command": "bash /fake/hook.sh claude stop"
         },
         {
-          "command": "bash /fake/hook.sh claude stop-failure",
+          "trigger": "StopFailure",
+          "matcher": null,
           "event": "stop-failure",
-          "matcher": null,
-          "trigger": "StopFailure"
+          "command": "bash /fake/hook.sh claude stop-failure"
         },
         {
-          "command": "bash /fake/hook.sh claude permission-denied",
+          "trigger": "PermissionDenied",
+          "matcher": null,
           "event": "permission-denied",
-          "matcher": null,
-          "trigger": "PermissionDenied"
+          "command": "bash /fake/hook.sh claude permission-denied"
         },
         {
-          "command": "bash /fake/hook.sh claude cwd-changed",
+          "trigger": "CwdChanged",
+          "matcher": null,
           "event": "cwd-changed",
-          "matcher": null,
-          "trigger": "CwdChanged"
+          "command": "bash /fake/hook.sh claude cwd-changed"
         },
         {
-          "command": "bash /fake/hook.sh claude subagent-start",
+          "trigger": "SubagentStart",
+          "matcher": null,
           "event": "subagent-start",
-          "matcher": null,
-          "trigger": "SubagentStart"
+          "command": "bash /fake/hook.sh claude subagent-start"
         },
         {
-          "command": "bash /fake/hook.sh claude subagent-stop",
+          "trigger": "SubagentStop",
+          "matcher": null,
           "event": "subagent-stop",
-          "matcher": null,
-          "trigger": "SubagentStop"
+          "command": "bash /fake/hook.sh claude subagent-stop"
         },
         {
-          "command": "bash /fake/hook.sh claude activity-log",
+          "trigger": "PostToolUse",
+          "matcher": null,
           "event": "activity-log",
-          "matcher": null,
-          "trigger": "PostToolUse"
+          "command": "bash /fake/hook.sh claude activity-log"
         },
         {
-          "command": "bash /fake/hook.sh claude task-created",
+          "trigger": "TaskCreated",
+          "matcher": null,
           "event": "task-created",
-          "matcher": null,
-          "trigger": "TaskCreated"
+          "command": "bash /fake/hook.sh claude task-created"
         },
         {
-          "command": "bash /fake/hook.sh claude task-completed",
+          "trigger": "TaskCompleted",
+          "matcher": null,
           "event": "task-completed",
-          "matcher": null,
-          "trigger": "TaskCompleted"
+          "command": "bash /fake/hook.sh claude task-completed"
         },
         {
-          "command": "bash /fake/hook.sh claude teammate-idle",
-          "event": "teammate-idle",
+          "trigger": "TeammateIdle",
           "matcher": null,
-          "trigger": "TeammateIdle"
+          "event": "teammate-idle",
+          "command": "bash /fake/hook.sh claude teammate-idle"
         }
       ],
       "snippet": {
         "hooks": {
-          "CwdChanged": [
+          "SessionStart": [
             {
+              "matcher": "",
               "hooks": [
                 {
-                  "command": "bash /fake/hook.sh claude cwd-changed",
-                  "type": "command"
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude session-start"
                 }
-              ],
-              "matcher": ""
-            }
-          ],
-          "Notification": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude notification",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
-          "PermissionDenied": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude permission-denied",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
-          "PostToolUse": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude activity-log",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
+              ]
             }
           ],
           "SessionEnd": [
             {
+              "matcher": "",
               "hooks": [
                 {
-                  "command": "bash /fake/hook.sh claude session-end",
-                  "type": "command"
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude session-end"
                 }
-              ],
-              "matcher": ""
-            }
-          ],
-          "SessionStart": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude session-start",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
-          "Stop": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude stop",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
-          "StopFailure": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude stop-failure",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
-          "SubagentStart": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude subagent-start",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
-          "SubagentStop": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude subagent-stop",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
-          "TaskCompleted": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude task-completed",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
-          "TaskCreated": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude task-created",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
-          "TeammateIdle": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh claude teammate-idle",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
+              ]
             }
           ],
           "UserPromptSubmit": [
             {
+              "matcher": "",
               "hooks": [
                 {
-                  "command": "bash /fake/hook.sh claude user-prompt-submit",
-                  "type": "command"
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude user-prompt-submit"
                 }
-              ],
-              "matcher": ""
+              ]
+            }
+          ],
+          "Notification": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude notification"
+                }
+              ]
+            }
+          ],
+          "Stop": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude stop"
+                }
+              ]
+            }
+          ],
+          "StopFailure": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude stop-failure"
+                }
+              ]
+            }
+          ],
+          "PermissionDenied": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude permission-denied"
+                }
+              ]
+            }
+          ],
+          "CwdChanged": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude cwd-changed"
+                }
+              ]
+            }
+          ],
+          "SubagentStart": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude subagent-start"
+                }
+              ]
+            }
+          ],
+          "SubagentStop": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude subagent-stop"
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude activity-log"
+                }
+              ]
+            }
+          ],
+          "TaskCreated": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude task-created"
+                }
+              ]
+            }
+          ],
+          "TaskCompleted": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude task-completed"
+                }
+              ]
+            }
+          ],
+          "TeammateIdle": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh claude teammate-idle"
+                }
+              ]
             }
           ]
         }
@@ -834,82 +836,80 @@ const EXPECTED_FULL_OUTPUT: &str = r#"{
       "config_path": "~/.codex/hooks.json",
       "hooks": [
         {
-          "command": "bash /fake/hook.sh codex session-start",
-          "event": "session-start",
+          "trigger": "SessionStart",
           "matcher": "startup|resume",
-          "trigger": "SessionStart"
+          "event": "session-start",
+          "command": "bash /fake/hook.sh codex session-start"
         },
         {
-          "command": "bash /fake/hook.sh codex user-prompt-submit",
+          "trigger": "UserPromptSubmit",
+          "matcher": null,
           "event": "user-prompt-submit",
-          "matcher": null,
-          "trigger": "UserPromptSubmit"
+          "command": "bash /fake/hook.sh codex user-prompt-submit"
         },
         {
-          "command": "bash /fake/hook.sh codex stop",
+          "trigger": "Stop",
+          "matcher": null,
           "event": "stop",
-          "matcher": null,
-          "trigger": "Stop"
+          "command": "bash /fake/hook.sh codex stop"
         },
         {
-          "command": "bash /fake/hook.sh codex activity-log",
-          "event": "activity-log",
+          "trigger": "PostToolUse",
           "matcher": null,
-          "trigger": "PostToolUse"
+          "event": "activity-log",
+          "command": "bash /fake/hook.sh codex activity-log"
         }
       ],
       "snippet": {
         "hooks": {
-          "PostToolUse": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh codex activity-log",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
-            }
-          ],
           "SessionStart": [
             {
+              "matcher": "startup|resume",
               "hooks": [
                 {
-                  "command": "bash /fake/hook.sh codex session-start",
-                  "type": "command"
+                  "type": "command",
+                  "command": "bash /fake/hook.sh codex session-start"
                 }
-              ],
-              "matcher": "startup|resume"
-            }
-          ],
-          "Stop": [
-            {
-              "hooks": [
-                {
-                  "command": "bash /fake/hook.sh codex stop",
-                  "type": "command"
-                }
-              ],
-              "matcher": ""
+              ]
             }
           ],
           "UserPromptSubmit": [
             {
+              "matcher": "",
               "hooks": [
                 {
-                  "command": "bash /fake/hook.sh codex user-prompt-submit",
-                  "type": "command"
+                  "type": "command",
+                  "command": "bash /fake/hook.sh codex user-prompt-submit"
                 }
-              ],
-              "matcher": ""
+              ]
+            }
+          ],
+          "Stop": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh codex stop"
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash /fake/hook.sh codex activity-log"
+                }
+              ]
             }
           ]
         }
       }
     }
-  },
-  "hook_script": "/fake/hook.sh",
-  "version": "__VERSION__"
+  }
 }"#;
 
 #[test]

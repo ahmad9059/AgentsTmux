@@ -1,5 +1,6 @@
 pub mod capture;
 mod hook;
+mod integrate;
 mod label;
 pub mod plugin_state;
 pub(crate) mod setup;
@@ -18,6 +19,7 @@ pub fn run(args: &[String]) -> Option<i32> {
     let rest = &args[1..];
     let code = match cmd {
         "setup" => setup::cmd_setup(rest),
+        "integrate" => integrate::cmd_integrate(rest),
         "hook" => hook::cmd_hook(rest),
         "toggle" => toggle::cmd_toggle(rest),
         "toggle-all" => toggle::cmd_toggle_all(rest),

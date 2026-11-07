@@ -89,6 +89,60 @@ pub(crate) fn build_agent_snippet(agent: &str, hook_script: &str) -> Option<serd
     Some(serde_json::json!({ "hooks": serde_json::Value::Object(hooks) }))
 }
 
+/// Add every hook `agent` requires that `config` does not already contain,
+/// preserving all existing entries. Returns whether `config` changed.
+pub(crate) fn merge_agent_hooks(
+    agent: &str,
+    config: &mut serde_json::Value,
+    hook_script: &str,
+) -> bool {
+    let Some(snippet) = build_agent_snippet(agent, hook_script) else {
+        return false;
+    };
+    let Some(expected) = snippet.get("hooks").and_then(serde_json::Value::as_object) else {
+        return false;
+    };
+    let Some(root) = config.as_object_mut() else {
+        return false;
+    };
+    let actual: std::collections::HashSet<HookSpec> =
+        collect_hook_specs(&serde_json::Value::Object(root.clone()))
+            .into_iter()
+            .map(normalize_hook_spec)
+            .collect();
+
+    let mut changed = false;
+    for (trigger, entries) in expected {
+        for entry in entries.as_array().into_iter().flatten() {
+            let single = serde_json::json!({ "hooks": { trigger: [entry] } });
+            let present = collect_hook_specs(&single)
+                .into_iter()
+                .map(normalize_hook_spec)
+                .all(|spec| actual.contains(&spec));
+            if present {
+                continue;
+            }
+            let Some(hooks) = root
+                .entry("hooks")
+                .or_insert_with(|| serde_json::json!({}))
+                .as_object_mut()
+            else {
+                continue;
+            };
+            let Some(list) = hooks
+                .entry(trigger.clone())
+                .or_insert_with(|| serde_json::json!([]))
+                .as_array_mut()
+            else {
+                continue;
+            };
+            list.push(entry.clone());
+            changed = true;
+        }
+    }
+    changed
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct HookSpec {

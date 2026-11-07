@@ -32,13 +32,7 @@ set -g @plugin 'ahmad9059/AgentsTmux'
 
 Reload tmux and press your prefix followed by **I**. In the install wizard, choose **Build from source** if a release binary is not yet available.
 
-Enable the compact, single-window configuration:
-
-```tmux
-source-file ~/.tmux/plugins/AgentsTmux/examples/agents-tmux.conf
-```
-
-Reload your configuration with `tmux source-file ~/.tmux.conf`.
+That is all. The compact single-window profile is the default, and the first load wires up every agent it finds (see [Agent setup](#agent-setup)).
 
 ### Manual installation
 
@@ -48,30 +42,26 @@ cd ~/.tmux/plugins/AgentsTmux
 cargo build --release
 ```
 
-Then add the example configuration and launcher to `~/.tmux.conf`:
+Then add the launcher to `~/.tmux.conf` and reload:
 
 ```tmux
-source-file ~/.tmux/plugins/AgentsTmux/examples/agents-tmux.conf
 run-shell ~/.tmux/plugins/AgentsTmux/agents-tmux.tmux
 ```
 
 ## Agent setup
 
-The installer backs up changed JSON files and preserves unrelated settings. Run it only for the agents you use:
+Nothing to run. Each time the plugin loads it runs `agents-tmux integrate --auto` in the background, which configures the agents it detects and skips the rest. It is idempotent, keeps your unrelated settings, and backs up any file it changes to `~/.local/state/agentstmux/backups/`.
 
-```sh
-python3 ~/.tmux/plugins/AgentsTmux/scripts/setup-integrations.py --all
-# Or: --claude --codex --opencode --pi, individually or together
-```
+- **Claude Code** (`claude` on `PATH`): installs `agents-tmux@agentstmux` from this repository's local marketplace. Start a new Claude session to load it.
+- **Codex** (`~/.codex` exists): merges lifecycle hooks into `~/.codex/hooks.json`. Review and trust the new definitions with `/hooks`; hook trust is never bypassed.
+- **OpenCode V2** (`~/.config/opencode` exists): links the bundled TUI plugin and adds it to `cli.json`. It runs in the local client so events target the correct `TMUX_PANE`, rather than the shared server's environment. Use `/reload` if OpenCode is already running.
+- **Pi** (`~/.pi/agent` exists): links the bundled extension. Pi uses the Claude-compatible adapter and badge; its preview payloads are marked `[Pi]`.
 
-- **Claude Code:** installs `agents-tmux@agentstmux` from this repository's local marketplace. Start a new Claude session to load the plugin.
-- **Codex:** merges lifecycle hooks into `~/.codex/hooks.json`. Review and trust the new definitions with `/hooks`; the installer does not bypass hook trust.
-- **OpenCode V2:** adds the included TUI plugin to `~/.config/opencode/cli.json`. It runs in the local client so events target the correct `TMUX_PANE`, rather than the shared server's environment. Use `/reload` if needed.
-- **Pi:** installs the included personal extension. Pi uses the Claude-compatible adapter and badge; its preview payloads are marked `[Pi]`. Native Pi branding in the Rust agent enum is not implemented.
+To opt out, add `set -g @agentstmux_auto_setup off` before the plugin loads. To set up an agent that was not detected, or to run the step by hand, use `agents-tmux integrate --all` (or `--claude --codex --opencode --pi`).
 
-The original V1-style OpenCode bridge is retained separately at `integrations/opencode-v1/agents-tmux.js`; do not load it in OpenCode V2.
+The original V1-style OpenCode bridge is retained at `integrations/opencode-v1/agents-tmux.js`; do not load it in OpenCode V2.
 
-When replacing an older sidebar installation, disable its plugin/hooks after enabling AgentsTmux. The installer intentionally does not remove differently named integrations from your settings; leaving both enabled can produce duplicate events.
+When replacing an older sidebar installation, disable its plugin and hooks. AgentsTmux never removes differently named integrations from your settings; leaving both enabled can produce duplicate events.
 
 For custom plugin locations, set `AGENTSTMUX_HOOK` to the absolute path of `hook.sh` before launching OpenCode or Pi.
 
@@ -87,7 +77,7 @@ In single-window mode, other agents remain in a detached `__agent-sidebar-*` hol
 
 ### Configuration
 
-See [`examples/agents-tmux.conf`](examples/agents-tmux.conf) for the complete configuration used by this setup. Key settings:
+These are the built-in defaults, applied only when you have not set the option yourself. Put your own values in `~/.tmux.conf` before the plugin loads to override them ([`examples/agents-tmux.conf`](examples/agents-tmux.conf) lists them all). Set `AGENTSTMUX_SHOW_PREVIEWS 1` to show prompt/reply previews again.
 
 ```tmux
 set -g @sidebar_single_window on

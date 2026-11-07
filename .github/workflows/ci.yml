@@ -14,4 +14,3 @@ jobs:
       - run: cargo clippy
       - run: cargo fmt --check
       - run: node --test tests/bridges.test.mjs
-      - run: python3 -m py_compile scripts/setup-integrations.py

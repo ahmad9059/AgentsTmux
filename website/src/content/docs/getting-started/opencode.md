@@ -5,10 +5,10 @@ description: Install the AgentsTmux client-side bridge for OpenCode V2.
 
 ## OpenCode V2
 
-Run the integration installer after building AgentsTmux:
+The plugin configures OpenCode V2 automatically when it loads in tmux and `~/.config/opencode` exists. To run it by hand:
 
 ```sh
-python3 ~/.tmux/plugins/AgentsTmux/scripts/setup-integrations.py --opencode
+agents-tmux integrate --opencode
 ```
 
 This preserves existing CLI settings and adds the package in `integrations/opencode-v2` to `~/.config/opencode/cli.json`. Use `/reload` if the client has not loaded the plugin yet.

@@ -26,3 +26,10 @@ fi
 tmux set -g @agent_sidebar_bin "$SIDEBAR_BINARY"
 
 tmux source-file "$PLUGIN_DIR/agent-sidebar.conf"
+
+# Plug and play: wire up every detected agent (Claude Code, Codex, OpenCode V2,
+# Pi). Idempotent, backs up changed files, and never blocks tmux startup.
+# Disable with: set -g @agentstmux_auto_setup off
+if [[ "$(tmux show-option -gqv @agentstmux_auto_setup)" != "off" ]]; then
+    tmux run-shell -b "AGENTSTMUX_PLUGIN_DIR='$PLUGIN_DIR' '$SIDEBAR_BINARY' integrate --auto --quiet >/dev/null 2>&1"
+fi
