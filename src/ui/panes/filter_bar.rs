@@ -1,11 +1,14 @@
 use ratatui::{
-    style::Style,
+    style::{Modifier, Style},
     text::{Line, Span},
 };
 
 use crate::state::{AppState, RepoFilter};
 
 use crate::ui::text::{display_width, truncate_to_width};
+
+/// Heading shown at the top of the sidebar.
+const TITLE: &str = "Agents Workspace";
 
 pub(super) fn render_secondary_header<'a>(
     state: &AppState,
@@ -31,16 +34,26 @@ pub(super) fn render_secondary_header<'a>(
     };
     let repo_btn_width = display_width(&repo_label) + 2; // label + space + arrow
 
-    let gap = (width as usize).saturating_sub(repo_btn_width + notices_width);
-    let repo_button_col = Some((notices_width + gap) as u16);
+    // The title sits after the notices badge (or at the left edge without
+    // one) and gives way to the repo filter when the sidebar is narrow.
+    let slot = if has_notices_info { notices_width } else { 0 };
+    let title_room = (width as usize).saturating_sub(repo_btn_width + slot + 1);
+    let title = truncate_to_width(TITLE, title_room);
+    let used = slot + display_width(&title);
+    let gap = (width as usize).saturating_sub(repo_btn_width + used);
+    let repo_button_col = Some((width as usize).saturating_sub(repo_btn_width) as u16);
 
     let mut spans: Vec<Span<'a>> = Vec::new();
     if has_notices_info {
         spans.push(crate::ui::notices::button_span(state));
         spans.push(Span::raw(" "));
-    } else {
-        spans.push(Span::raw("  "));
     }
+    spans.push(Span::styled(
+        title,
+        Style::default()
+            .fg(theme.session_header)
+            .add_modifier(Modifier::BOLD),
+    ));
     spans.push(Span::raw(" ".repeat(gap)));
     spans.push(Span::styled(repo_label, repo_style));
     spans.push(Span::raw(" "));
@@ -75,7 +88,7 @@ mod tests {
         });
 
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ                          — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ▾");
     }
 
     #[test]
@@ -103,7 +116,7 @@ mod tests {
     fn snapshot_secondary_header_without_notices_info() {
         let state = AppState::new(String::new());
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"                           — ▾");
+        insta::assert_snapshot!(text, @"Agents Workspace           — ▾");
     }
 
     #[test]
@@ -114,7 +127,7 @@ mod tests {
             latest_version: "0.2.7".into(),
         });
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ                          — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ▾");
     }
 
     #[test]
@@ -125,7 +138,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ                          — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ▾");
     }
 
     #[test]
@@ -140,7 +153,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ                          — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ▾");
     }
 
     // ─── secondary header tests ───────────────────────────────
@@ -174,7 +187,7 @@ mod tests {
 
         let (line, notices_col, repo_col) = render_secondary_header(&state, 28);
         let text = line_text(&line);
-        insta::assert_snapshot!(text, @"ⓘ                        — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace       — ▾");
         // Click-target columns are layout state, not visible characters,
         // so they stay as direct equality checks alongside the snapshot.
         assert_eq!(notices_col, Some(0));
