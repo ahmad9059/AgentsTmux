@@ -7,6 +7,9 @@ use crate::state::{AppState, RepoFilter};
 
 use crate::ui::text::{display_width, truncate_to_width};
 
+/// Nerd Font caret-down shown next to the repo filter (U+F0D7).
+const REPO_ICON: &str = "\u{f0d7}";
+
 /// Heading shown at the top of the sidebar.
 const TITLE: &str = "Agents Workspace";
 
@@ -15,7 +18,7 @@ pub(super) fn render_secondary_header<'a>(
     width: u16,
 ) -> (Line<'a>, Option<u16>, Option<u16>) {
     let theme = &state.theme;
-    let repo_icon = "▾";
+    let repo_icon = REPO_ICON;
 
     let repo_has_filter = !matches!(state.global.repo_filter, RepoFilter::All);
     let repo_style = if state.is_repo_popup_open() || repo_has_filter {
@@ -88,7 +91,7 @@ mod tests {
         });
 
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ");
     }
 
     #[test]
@@ -116,7 +119,7 @@ mod tests {
     fn snapshot_secondary_header_without_notices_info() {
         let state = AppState::new(String::new());
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"Agents Workspace           — ▾");
+        insta::assert_snapshot!(text, @"Agents Workspace           — ");
     }
 
     #[test]
@@ -127,7 +130,7 @@ mod tests {
             latest_version: "0.2.7".into(),
         });
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ");
     }
 
     #[test]
@@ -138,7 +141,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ");
     }
 
     #[test]
@@ -153,7 +156,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace         — ");
     }
 
     // ─── secondary header tests ───────────────────────────────
@@ -187,7 +190,7 @@ mod tests {
 
         let (line, notices_col, repo_col) = render_secondary_header(&state, 28);
         let text = line_text(&line);
-        insta::assert_snapshot!(text, @"ⓘ Agents Workspace       — ▾");
+        insta::assert_snapshot!(text, @"ⓘ Agents Workspace       — ");
         // Click-target columns are layout state, not visible characters,
         // so they stay as direct equality checks alongside the snapshot.
         assert_eq!(notices_col, Some(0));
@@ -208,7 +211,7 @@ mod tests {
             "secondary header should show filtered repo name, got: {text}"
         );
         assert!(
-            text.find("my-app").unwrap() < text.find("▾").unwrap(),
+            text.find("my-app").unwrap() < text.find(REPO_ICON).unwrap(),
             "repo name should come before the arrow"
         );
         let (line, _, _) = render_secondary_header(&state, 40);
@@ -237,13 +240,13 @@ mod tests {
             text.contains('…'),
             "repo name should be truncated with an ellipsis"
         );
-        assert!(text.contains("▾"));
+        assert!(text.contains(REPO_ICON));
         assert!(
             !text.contains("very-long-repository-name-that-exceeds-width"),
             "repo name should not fit in full at this width"
         );
         assert!(
-            text.find('…').unwrap() < text.find("▾").unwrap(),
+            text.find('…').unwrap() < text.find(REPO_ICON).unwrap(),
             "repo name should come before the arrow"
         );
     }

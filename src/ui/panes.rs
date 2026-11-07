@@ -54,20 +54,14 @@ struct PaneLayout {
     list_area: Rect,
 }
 
-/// Screen row of the thin divider above the heading.
-pub const TOP_DIVIDER_ROW: u16 = 0;
 /// Screen row of the sidebar heading.
-pub const HEADER_ROW: u16 = 1;
-/// Screen row of the thin divider under the heading. A line drawn through
-/// the middle of a row leaves half a row of space above and below it, which
-/// whole-row padding cannot.
-pub const DIVIDER_ROW: u16 = 2;
-/// Screen row where the agent list starts.
-pub const LIST_FIRST_ROW: u16 = 3;
+pub const HEADER_ROW: u16 = 0;
+/// Screen row where the agent list starts, directly under the heading.
+pub const LIST_FIRST_ROW: u16 = 1;
 
 impl PaneLayout {
     fn compute(area: Rect) -> Self {
-        let header_y = area.y + HEADER_ROW.min(area.height);
+        let header_y = area.y + HEADER_ROW;
         let secondary_area = Rect {
             x: area.x,
             y: header_y,
@@ -464,24 +458,6 @@ pub(super) fn render_repo_popup(frame: &mut Frame, state: &mut AppState, area: R
     }
 }
 
-fn render_header_dividers(frame: &mut Frame, state: &AppState, area: Rect) {
-    for divider_row in [TOP_DIVIDER_ROW, DIVIDER_ROW] {
-        if area.height <= divider_row || area.width == 0 {
-            continue;
-        }
-        let row = Rect::new(area.x, area.y + divider_row, area.width, 1);
-        frame.render_widget(
-            Paragraph::new(Line::from(Span::styled(
-                "─".repeat(area.width as usize),
-                Style::default()
-                    .fg(state.theme.divider)
-                    .add_modifier(Modifier::DIM),
-            ))),
-            row,
-        );
-    }
-}
-
 fn render_secondary_header_into(frame: &mut Frame, state: &mut AppState, area: Rect) {
     let (line, notices_btn_col, repo_btn_col) =
         filter_bar::render_secondary_header(state, area.width);
@@ -553,7 +529,6 @@ fn render_flash_banner_into(frame: &mut Frame, state: &mut AppState, area: Rect)
 pub fn draw_agents(frame: &mut Frame, state: &mut AppState, area: Rect) {
     let layout = PaneLayout::compute(area);
     render_secondary_header_into(frame, state, layout.secondary_area);
-    render_header_dividers(frame, state, area);
 
     let row_collector::CollectedRows {
         lines,
@@ -581,7 +556,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pane_layout_frames_the_header_with_two_divider_rows() {
+    fn pane_layout_puts_the_list_directly_under_the_header() {
         let area = Rect {
             x: 0,
             y: 0,
@@ -589,10 +564,10 @@ mod tests {
             height: 20,
         };
         let layout = PaneLayout::compute(area);
-        assert_eq!(layout.secondary_area.y, 1);
+        assert_eq!(layout.secondary_area.y, 0);
         assert_eq!(layout.secondary_area.height, 1);
-        assert_eq!(layout.list_area.y, 3);
-        assert_eq!(layout.list_area.height, 17);
+        assert_eq!(layout.list_area.y, 1);
+        assert_eq!(layout.list_area.height, 19);
         assert_eq!(layout.list_area.width, 40);
     }
 
@@ -605,7 +580,7 @@ mod tests {
             height: 1,
         };
         let layout = PaneLayout::compute(area);
-        assert_eq!(layout.secondary_area.height, 0);
+        assert_eq!(layout.secondary_area.height, 1);
         assert_eq!(layout.list_area.height, 0);
     }
 
@@ -632,9 +607,9 @@ mod tests {
         };
         let layout = PaneLayout::compute(area);
         assert_eq!(layout.secondary_area.x, 5);
-        assert_eq!(layout.secondary_area.y, 11);
+        assert_eq!(layout.secondary_area.y, 10);
         assert_eq!(layout.list_area.x, 5);
-        assert_eq!(layout.list_area.y, 13);
-        assert_eq!(layout.list_area.height, 12);
+        assert_eq!(layout.list_area.y, 11);
+        assert_eq!(layout.list_area.height, 14);
     }
 }
