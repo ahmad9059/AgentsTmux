@@ -15,6 +15,7 @@ pub struct ColorTheme {
     pub border_inactive: Color,
     pub status_all: Color,
     pub status_running: Color,
+    pub status_background: Color,
     pub status_waiting: Color,
     pub status_idle: Color,
     pub status_error: Color,
@@ -54,10 +55,13 @@ impl Default for ColorTheme {
             accent: Color::Indexed(153),
             border_inactive: Color::Indexed(240),
             status_all: Color::Indexed(111),
-            status_running: Color::Indexed(114),
-            status_waiting: Color::Indexed(221),
-            status_idle: Color::Indexed(110),
-            status_error: Color::Indexed(167),
+            // Yellow while working, blue for background work, orange when the
+            // agent needs you, green when it is ready, red on error.
+            status_running: Color::Indexed(221),
+            status_background: Color::Indexed(75),
+            status_waiting: Color::Indexed(208),
+            status_idle: Color::Indexed(114),
+            status_error: Color::Indexed(203),
             status_unknown: Color::Indexed(244),
             filter_inactive: Color::Indexed(245),
             agent_claude: Color::Indexed(174),
@@ -112,6 +116,7 @@ impl ColorTheme {
         theme.border_inactive = read(tmux::SIDEBAR_COLOR_BORDER, theme.border_inactive);
         theme.status_all = read(tmux::SIDEBAR_COLOR_ALL, theme.status_all);
         theme.status_running = read(tmux::SIDEBAR_COLOR_RUNNING, theme.status_running);
+        theme.status_background = read(tmux::SIDEBAR_COLOR_BACKGROUND, theme.status_background);
         theme.status_waiting = read(tmux::SIDEBAR_COLOR_WAITING, theme.status_waiting);
         theme.status_idle = read(tmux::SIDEBAR_COLOR_IDLE, theme.status_idle);
         theme.status_error = read(tmux::SIDEBAR_COLOR_ERROR, theme.status_error);
@@ -152,7 +157,7 @@ impl ColorTheme {
         }
         match status {
             PaneStatus::Running => self.status_running,
-            PaneStatus::Background => self.status_running,
+            PaneStatus::Background => self.status_background,
             PaneStatus::Waiting => self.status_waiting,
             PaneStatus::Idle => self.status_idle,
             PaneStatus::Error => self.status_error,
@@ -217,19 +222,23 @@ mod tests {
         let theme = ColorTheme::default();
         assert_eq!(
             theme.status_color(&PaneStatus::Running, false),
-            Color::Indexed(114)
-        );
-        assert_eq!(
-            theme.status_color(&PaneStatus::Waiting, false),
             Color::Indexed(221)
         );
         assert_eq!(
+            theme.status_color(&PaneStatus::Background, false),
+            Color::Indexed(75)
+        );
+        assert_eq!(
+            theme.status_color(&PaneStatus::Waiting, false),
+            Color::Indexed(208)
+        );
+        assert_eq!(
             theme.status_color(&PaneStatus::Idle, false),
-            Color::Indexed(110)
+            Color::Indexed(114)
         );
         assert_eq!(
             theme.status_color(&PaneStatus::Error, false),
-            Color::Indexed(167)
+            Color::Indexed(203)
         );
         assert_eq!(
             theme.status_color(&PaneStatus::Unknown, false),

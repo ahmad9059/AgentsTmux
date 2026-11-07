@@ -274,11 +274,22 @@ fn the_window_switches_to_another_agent_when_the_visible_one_exits() {
     // The agent exits: its pane drops to a shell and the hook clears the mark.
     tmux_ok(&["respawn-pane", "-k", "-t", agent_a, "bash"]);
     tmux_ok(&["set-option", "-p", "-u", "-t", agent_a, "@pane_agent"]);
-    for _ in 0..3 {
-        state.refresh();
-        state.follow_exited_agent();
+    // The fast path reacts within a couple of ticks, without a refresh.
+    for _ in 0..4 {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        state.follow_exited_agent_fast();
     }
-    assert_eq!(tmux::workspace::content_pane(host).unwrap(), agent_b);
+    let layout = tmux_ok(&[
+        "list-panes",
+        "-a",
+        "-F",
+        "#{session_name}:#{window_id} #{pane_id} #{pane_current_command} #{@pane_role}",
+    ]);
+    assert_eq!(
+        tmux::workspace::content_pane(host).unwrap(),
+        agent_b,
+        "{layout}"
+    );
     let panes = tmux_ok(&["list-panes", "-a", "-F", "#{pane_id}"]);
     assert!(
         !panes.lines().any(|p| p == agent_a),

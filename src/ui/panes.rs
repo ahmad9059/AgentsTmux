@@ -460,7 +460,7 @@ pub(super) fn render_repo_popup(frame: &mut Frame, state: &mut AppState, area: R
 }
 
 fn render_filter_bar_into(frame: &mut Frame, state: &AppState, area: Rect) {
-    let line = filter_bar::render_filter_bar(state);
+    let line = filter_bar::render_filter_bar(state, area.width);
     frame.render_widget(Paragraph::new(vec![line]), area);
 }
 

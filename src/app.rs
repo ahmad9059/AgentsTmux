@@ -10,8 +10,8 @@ use std::time::Duration;
 use crossterm::event::{self};
 use ratatui::{Terminal, backend::CrosstermBackend};
 
-use crate::SPINNER_PULSE;
 use crate::state::BottomTab;
+use crate::ui::icons::ANIMATION_PERIOD;
 
 mod input;
 mod render;
@@ -45,7 +45,7 @@ pub fn run(
     let mut last_refresh = std::time::Instant::now();
     let mut last_spinner = std::time::Instant::now();
     let refresh_interval = Duration::from_secs(1);
-    let spinner_interval = Duration::from_millis(200);
+    let spinner_interval = Duration::from_millis(100);
     let mut needs_redraw = true;
 
     loop {
@@ -76,11 +76,12 @@ pub fn run(
         }
 
         if last_spinner.elapsed() >= spinner_interval {
-            state.spinner_frame = (state.spinner_frame + 1) % SPINNER_PULSE.len();
+            state.spinner_frame = (state.spinner_frame + 1) % ANIMATION_PERIOD;
             if state.pet_enabled {
                 let term_width = terminal.size().map(|s| s.width).unwrap_or(60);
                 state.tick_pet(term_width);
             }
+            state.follow_exited_agent_fast();
             last_spinner = std::time::Instant::now();
             needs_redraw = true;
         }

@@ -9,6 +9,8 @@ One tmux window for your coding agents. Keep a persistent sidebar on the left, s
 - **Reliable selection:** the visible agent stays highlighted while you type. Keyboard navigation has its own cursor, tracked by pane identity rather than an unstable row number.
 - **Compact sidebar:** hide prompt/reply previews and the idle placeholder; retain status, branch, task progress, and activity.
 - **Useful notifications:** short, single-line completion, question, permission, and error alerts. Session selection does not replay old completions. On Hyprland, alerts are suppressed when the source tmux window is visible on an active workspace.
+- **Live status indicators:** a yellow braille spinner while an agent works, a blue orbiting dot for background work, a blinking orange dot when it needs you, a green ring when it is ready, and a red dot on error. Every icon and color can be overridden.
+- **Sound effects:** a soft chime when an agent finishes and a double ping when it asks a question, needs permission, or fails. Played only when you are not looking at that agent, like the desktop alerts.
 - **Papirus status icons:** green completion tick, question, and error icons, with theme-icon fallbacks when Papirus is unavailable.
 - **Claude Code, Codex, OpenCode V2, and Pi:** agent integrations are included, including the client-side bridge needed by OpenCode's shared-service architecture.
 - **Start agents in any folder:** the **+** button opens an agent in the current folder, or in a path you type. No git worktree or branch is created. Closing an agent never touches its folder or kills the shared Agents window.
@@ -80,6 +82,18 @@ For custom plugin locations, set `AGENTSTMUX_HOOK` to the absolute path of `hook
 The sidebar is never opened in every window automatically. It is created by hand with **prefix + e**, and automatically in windows named "Agents" or "Agent" (new, renamed, or restored ones). Set `@sidebar_auto_create` to `on` for every new window, or `off` for none. `@sidebar_width` sets the width in columns (default `32`) or as a percentage such as `15%`.
 
 In single-window mode, other agents remain in a detached `__agent-sidebar-*` holding session. These are live panes, not suspended processes. Do not kill the holding session unless you intend to stop those agents.
+
+### Sound effects
+
+Sounds are on by default and follow the same rules as desktop notifications: only for events you have enabled, only when the agent is out of view, and never when an old session is merely re-selected. They are bundled in the binary and played with the first player found on your system (`pw-play`, `paplay`, `aplay`, `afplay`, `mpv`, `ffplay`, or `play`).
+
+```tmux
+set -g @sidebar_sound off                          # turn sounds off
+set -g @sidebar_sound_done ~/sounds/finished.wav   # your own file for "finished"
+set -g @sidebar_sound_request ~/sounds/ask.wav     # your own file for "needs you"
+```
+
+Run `agents-tmux play-sound done` or `agents-tmux play-sound request` to test your setup. The bundled sounds are synthesized by `scripts/generate-sounds.py`.
 
 ### Configuration
 

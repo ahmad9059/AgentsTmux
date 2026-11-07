@@ -4,6 +4,7 @@ use std::process::Stdio;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
+use crate::sound;
 use crate::time::now_epoch_secs;
 use crate::tmux;
 
@@ -167,10 +168,17 @@ pub fn notify_if_allowed(
     title: &str,
     body: &str,
 ) -> bool {
-    if !settings.enabled || pane_id.is_empty() || !settings.event_enabled(event) {
+    if pane_id.is_empty() || !settings.event_enabled(event) {
         return false;
     }
-    // A desktop alert is useful only when its source pane is out of view.
+    // A bridge may synchronize an existing session without replaying alerts.
+    let quiet = std::env::var("AGENTSTMUX_QUIET").as_deref() == Ok("1");
+    let options = tmux::get_all_global_options();
+    let sound_on = !quiet && !cfg!(test) && sound::enabled_in(&options);
+    if !settings.enabled && !sound_on {
+        return false;
+    }
+    // An alert is useful only when its source pane is out of view.
     if source_pane_is_visible(pane_id) {
         return false;
     }
@@ -186,14 +194,28 @@ pub fn notify_if_allowed(
         return false;
     }
 
-    match send_desktop_notification(kind, title, body) {
-        Ok(()) => {
-            tmux::set_pane_option(pane_id, key, &encode_stamp(now, &normalized_fingerprint));
-            true
+    let mut delivered = false;
+    if settings.enabled {
+        match send_desktop_notification(kind, title, body) {
+            Ok(()) => delivered = true,
+            Err(err) => eprintln!("desktop notification failed: {err}"),
         }
-        Err(err) => {
-            eprintln!("desktop notification failed: {err}");
-            false
+    }
+    if sound_on {
+        sound::play(sound_for(kind), &options);
+        delivered = true;
+    }
+    if delivered {
+        tmux::set_pane_option(pane_id, key, &encode_stamp(now, &normalized_fingerprint));
+    }
+    delivered
+}
+
+fn sound_for(kind: DesktopNotificationKind) -> sound::Sound {
+    match kind {
+        DesktopNotificationKind::TaskCompleted => sound::Sound::Done,
+        DesktopNotificationKind::TaskFailed | DesktopNotificationKind::PermissionRequired => {
+            sound::Sound::Request
         }
     }
 }

@@ -10,7 +10,11 @@ use crate::tmux;
 /// Ticks (about a second each) the visible pane must stay agent-less before
 /// the sidebar reacts. A `/clear` ends and restarts a session within moments
 /// and must not be mistaken for an exit.
-const MISSING_TICKS: u8 = 2;
+const MISSING_TICKS: u8 = 1;
+
+/// Fast-path ticks (about 100 ms each) the visible pane must show a bare
+/// shell before the sidebar switches away from it.
+const SHELL_TICKS: u8 = 2;
 
 #[derive(Debug, Default)]
 pub(crate) struct ExitFallback {
@@ -20,6 +24,10 @@ pub(crate) struct ExitFallback {
     /// agent was still listed.
     groups: Vec<Vec<String>>,
     missing_ticks: u8,
+    /// Session and Agents host window, remembered for the fast path.
+    owner: String,
+    host: String,
+    shell_ticks: u8,
 }
 
 /// Choose the agent to show after `exited` is gone.
@@ -95,6 +103,9 @@ impl AppState {
                 visible: Some(content),
                 groups,
                 missing_ticks: 0,
+                owner: owner.clone(),
+                host: host.clone(),
+                shell_ticks: 0,
             };
             return;
         }
@@ -113,14 +124,65 @@ impl AppState {
         }
         let target = fallback_pane(&self.exit_fallback.groups, &exited, &alive);
         self.exit_fallback = ExitFallback::default();
+        if let Some(target) = target {
+            switch_away(&host, &owner, &content, &target, placeholder);
+        }
+    }
+
+    /// Fast path, called about ten times a second: notice that the visible
+    /// agent's pane has dropped to a shell without waiting for the next
+    /// refresh, and switch right away.
+    pub fn follow_exited_agent_fast(&mut self) {
+        if !self.persistent_agent_highlight {
+            return;
+        }
+        let fallback = &mut self.exit_fallback;
+        let (Some(visible), false) = (fallback.visible.clone(), fallback.host.is_empty()) else {
+            return;
+        };
+        let info = tmux::display_message(&visible, "#{pane_current_command}|#{window_id}");
+        let (command, window) = info.split_once('|').unwrap_or(("", ""));
+        // The pane closed outright, or it is no longer the one on screen.
+        let gone = info.is_empty();
+        if !gone && window != fallback.host {
+            fallback.shell_ticks = 0;
+            return;
+        }
+        if !gone && !tmux::is_shell_command(command) {
+            fallback.shell_ticks = 0;
+            return;
+        }
+        fallback.shell_ticks += 1;
+        if fallback.shell_ticks < SHELL_TICKS {
+            return;
+        }
+        let alive: HashSet<String> = fallback
+            .groups
+            .iter()
+            .flatten()
+            .filter(|pane| **pane != visible)
+            .cloned()
+            .collect();
+        let target = fallback_pane(&fallback.groups, &visible, &alive);
+        let (host, owner) = (fallback.host.clone(), fallback.owner.clone());
+        self.exit_fallback = ExitFallback::default();
         let Some(target) = target else {
             return;
         };
-        let spawned = tmux::display_message(&content, "#{@agent-sidebar-spawned}") == "1";
-        if tmux::workspace::show(&host, &target, &owner).is_ok() && spawned && !placeholder {
-            // The leftover shell of an agent this sidebar started has no use.
-            let _ = tmux::run_tmux(&["kill-pane", "-t", &content]);
-        }
+        let content = tmux::workspace::content_pane(&host).unwrap_or(visible);
+        let placeholder = tmux::display_message(&content, "#{@pane_role}") == "agent-placeholder";
+        switch_away(&host, &owner, &content, &target, placeholder);
+    }
+}
+
+/// Show `target` in the Agents window and close the shell that `content`
+/// was left as, when the sidebar started it.
+fn switch_away(host: &str, owner: &str, content: &str, target: &str, placeholder: bool) {
+    let spawned = tmux::display_message(content, "#{@agent-sidebar-spawned}") == "1";
+    let shown = tmux::workspace::show(host, target, owner);
+    if shown.is_ok() && spawned && !placeholder {
+        // The leftover shell of an agent this sidebar started has no use.
+        let _ = tmux::run_tmux(&["kill-pane", "-t", content]);
     }
 }
 

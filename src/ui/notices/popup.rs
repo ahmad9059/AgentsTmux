@@ -236,7 +236,7 @@ pub(in crate::ui) fn render_notices_popup(frame: &mut Frame, state: &mut AppStat
             // changes (e.g. between `[prompt]` and `[copied]`).
             let is_copied = copied_agent.as_deref() == Some(CLAUDE_AGENT);
             let (label_text, label_color) = if is_copied {
-                (COPIED_LABEL, theme.status_running)
+                (COPIED_LABEL, theme.diff_added)
             } else {
                 (PROMPT_LABEL, theme.status_waiting)
             };
@@ -289,7 +289,7 @@ pub(in crate::ui) fn render_notices_popup(frame: &mut Frame, state: &mut AppStat
             {
                 let is_copied = copied_agent.as_deref() == Some(group.agent.as_str());
                 let (label_text, label_color) = if is_copied {
-                    (COPIED_LABEL, theme.status_running)
+                    (COPIED_LABEL, theme.diff_added)
                 } else {
                     (COPY_LABEL, theme.status_waiting)
                 };

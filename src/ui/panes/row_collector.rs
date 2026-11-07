@@ -212,8 +212,8 @@ mod tests {
             .join("\n");
         insta::assert_snapshot!(snapshot, @"
         repo [highlight=false]
-          ● claude [highlight=false]
-        ┃ ● claude [highlight=true]
+          ⠋ claude [highlight=false]
+        ┃ ⠋ claude [highlight=true]
         ");
     }
 

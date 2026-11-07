@@ -114,7 +114,7 @@ pub(super) fn background_hint_row(ctx: &RowCtx, cmd: &str) -> Line<'static> {
     ctx.row_line(
         vec![Span::styled(
             text,
-            ctx.apply_bg(Style::default().fg(ctx.theme.status_running)),
+            ctx.apply_bg(Style::default().fg(ctx.theme.status_background)),
         )],
         text_dw,
     )

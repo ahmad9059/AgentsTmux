@@ -1,10 +1,9 @@
 use ratatui::{
-    style::{Color, Style},
+    style::Style,
     text::{Line, Span},
 };
 
 use super::ctx::RowCtx;
-use crate::tmux::PaneStatus;
 use crate::ui::icons::StatusIcons;
 use crate::ui::text::{display_width, elapsed_label, truncate_to_width};
 
@@ -18,9 +17,8 @@ pub(super) fn status_row(
     use crate::tmux::PermissionMode;
     let theme = ctx.theme;
 
-    let (icon, pulse_color) = running_icon_for(&pane.status, spinner_frame, icons);
-    let icon_color =
-        pulse_color.unwrap_or_else(|| theme.status_color(&pane.status, pane.attention));
+    let icon = icons.status_icon(&pane.status, spinner_frame);
+    let icon_color = theme.status_color(&pane.status, pane.attention);
     let title_raw: &str = if pane.session_name.is_empty() {
         pane.agent.label()
     } else {
@@ -85,20 +83,4 @@ pub(super) fn status_row(
     )];
 
     ctx.row_line_split(left_spans, left_width, right_spans, elapsed_width)
-}
-
-pub(super) fn running_icon_for<'a>(
-    status: &PaneStatus,
-    spinner_frame: usize,
-    icons: &'a StatusIcons,
-) -> (&'a str, Option<Color>) {
-    use crate::SPINNER_PULSE;
-
-    match status {
-        PaneStatus::Running => {
-            let color_idx = SPINNER_PULSE[spinner_frame % SPINNER_PULSE.len()];
-            (icons.status_icon(status), Some(Color::Indexed(color_idx)))
-        }
-        _ => (icons.status_icon(status), None),
-    }
 }

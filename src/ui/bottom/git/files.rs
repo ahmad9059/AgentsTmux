@@ -41,7 +41,7 @@ pub(super) fn render_file_section(
     for entry in files.iter().take(MAX_CHANGED_FILES) {
         let status_color = match entry.status {
             'M' => theme.badge_auto,
-            'A' => theme.status_running,
+            'A' => theme.diff_added,
             'D' => theme.badge_danger,
             _ => theme.text_muted,
         };

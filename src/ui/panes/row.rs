@@ -15,8 +15,6 @@ use body::{
 };
 use branch::branch_ports_row;
 use ctx::{RowCtx, SELECTION_MARKER};
-#[cfg(test)]
-use status::running_icon_for;
 use status::status_row;
 
 pub(super) use branch::sidebar_remove_marker_col;
@@ -118,7 +116,7 @@ mod tests {
     use crate::tmux::{AgentType, PaneInfo, PermissionMode, WorktreeMetadata};
     use crate::ui::icons::StatusIcons;
     use crate::ui::text::display_width;
-    use ratatui::style::{Color, Modifier};
+    use ratatui::style::Modifier;
 
     fn pane(permission_mode: PermissionMode, status: PaneStatus, prompt: &str) -> PaneInfo {
         pane_with_response(permission_mode, status, prompt, false)
@@ -384,29 +382,6 @@ mod tests {
 
         let status = line_text(&lines[0]);
         assert!(status.contains("2m5s"));
-    }
-
-    #[test]
-    fn running_icon_for_all_statuses() {
-        let icons = StatusIcons::default();
-        assert_eq!(running_icon_for(&PaneStatus::Idle, 0, &icons), ("○", None));
-        assert_eq!(
-            running_icon_for(&PaneStatus::Waiting, 0, &icons),
-            ("◐", None)
-        );
-        assert_eq!(running_icon_for(&PaneStatus::Error, 0, &icons), ("✕", None));
-        assert_eq!(
-            running_icon_for(&PaneStatus::Unknown, 0, &icons),
-            ("·", None)
-        );
-        assert_eq!(
-            running_icon_for(&PaneStatus::Background, 0, &icons),
-            ("◎", None)
-        );
-
-        let (icon, color) = running_icon_for(&PaneStatus::Running, 0, &icons);
-        assert_eq!(icon, "●");
-        assert_eq!(color, Some(Color::Indexed(82)));
     }
 
     #[test]
