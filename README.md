@@ -1,120 +1,325 @@
 # AgentsTmux
 
-One tmux window for your coding agents. Keep a persistent sidebar on the left, switch live agents on the right, and leave the rest running in the background.
+A tmux sidebar for Claude Code, Codex, OpenCode, and Pi.
+
+Keep your agents in one tmux window. Select an agent to show its live terminal beside the sidebar.
+Other agents continue to run in the background.
 
 ## Features
 
-- **One Agents tab:** new agents use a detached holding session instead of adding tabs to your main session. Selecting an agent swaps its live pane into view; its process, conversation, scrollback, and worktree stay intact.
-- **Stable ordering:** folders and the agents in them stay in creation order. A new folder or agent appears at the bottom instead of jumping around during swaps.
-- **Reliable selection:** the visible agent stays highlighted while you type. Keyboard navigation has its own cursor, tracked by pane identity rather than an unstable row number.
-- **Live usage panel:** the bottom panel shows the focused agent's own limits — Claude Code's 5-hour and weekly windows, Codex's primary and weekly windows with plan and credits. Local stats refresh every 10 seconds; subscription requests share a 60-second cache across sidebar instances and respect provider retry delays. OpenCode and Pi use their own provider credentials, not an unrelated CLI account. Temporary failures retain cached bars with an age label (up to one hour), rather than erasing them. When Claude's request is throttled, an OpenCode credential can supply its limits only after Anthropic verifies the same account and organization.
-- **Compact sidebar:** hide prompt/reply previews and the idle placeholder; retain status, branch, and task progress.
-- **Useful notifications:** short, single-line completion, question, permission, and error alerts. Session selection does not replay old completions. On Hyprland, alerts are suppressed when the source tmux window is visible on an active workspace.
-- **Live status indicators:** a yellow braille spinner while an agent works, a blue orbiting dot for background work, a blinking orange dot when it needs you, a green ring when it is ready, and a red dot on error. Every icon and color can be overridden.
-- **Sound effects:** a soft chime when an agent finishes and a double ping when it asks a question, needs permission, or fails. Played only when you are not looking at that agent, like the desktop alerts.
-- **Papirus status icons:** green completion tick, question, and error icons, with theme-icon fallbacks when Papirus is unavailable.
-- **Claude Code, Codex, OpenCode V2, and Pi:** agent integrations are included, including the client-side bridge needed by OpenCode's shared-service architecture.
-- **Start agents in any folder:** the **+** button opens an agent in the current folder, or in a path you type. No git worktree or branch is created. Closing an agent never touches its folder or kills the shared Agents window.
-- **Quiet by default:** the sidebar appears only where you ask for it (**prefix + e**) and in windows named "Agents" or "Agent". It keeps its configured width when the terminal is resized.
+- **One window for agents.** Switch agents without adding a tmux window for each agent.
+  Each agent keeps its process, conversation, and terminal history.
+- **Creation order.** New folders appear below existing folders. New agents appear below existing agents in their folder.
+- **Persistent selection.** The visible agent stays highlighted while you type. Keyboard navigation tracks each agent by its pane identity.
+- **Usage for the visible agent.** See subscription limits, reset times, model names, and local session usage where available.
+- **Status indicators.** Animated indicators show working, background, waiting, ready, and error states. You can change their icons and colors.
+- **Notifications and sounds.** Receive completion, question, permission, and error alerts when the source agent is not visible.
+  Selecting an existing session does not repeat its completion alert.
+- **Folder-based sessions.** Start an agent in an existing folder. AgentsTmux does not create a Git worktree or branch.
+- **Compact view.** Prompt and reply previews are hidden by default. Status, branch, and task progress remain visible.
 
 ## Requirements
 
-- tmux 3.0+ and Git
-- Rust/Cargo to build from source until AgentsTmux release binaries are published
-- [TPM](https://github.com/tmux-plugins/tpm) for plugin-manager installation
-- Python 3 for the optional integration installer
-- Linux desktop notifications: `notify-send` and a notification daemon such as SwayNC
-- Optional: Papirus icons, `hyprctl` for workspace-aware alerts, and `gh` for PR metadata
+- tmux 3.0 or later
+- Git
+- Rust and Cargo for source builds
+- `curl` for subscription usage requests
 
-## Install with TPM
+Optional tools:
 
-Add this before TPM's initialization line in `~/.tmux.conf`:
+| Tool | Purpose |
+|---|---|
+| [TPM](https://github.com/tmux-plugins/tpm) | Install AgentsTmux as a tmux plugin |
+| Nerd Font | Render the sidebar glyphs |
+| `sqlite3` | Read local OpenCode V2 usage and provider credentials |
+| `notify-send` and a notification daemon | Show Linux desktop notifications |
+| Papirus icons | Supply notification icons, with theme icons as a fallback |
+| `hyprctl` | Check whether an agent is visible on an active Hyprland workspace |
+| An audio player | Play the bundled alert sounds |
 
-```tmux
-set -g @plugin 'ahmad9059/AgentsTmux'
-```
+## Installation
 
-Reload tmux and press your prefix followed by **I**. In the install wizard, choose **Build from source** if a release binary is not yet available.
+### Install with TPM
 
-That is all. The compact single-window profile is the default, and the first load wires up every agent it finds (see [Agent setup](#agent-setup)).
+1. Add this line before the TPM initialization line in `~/.tmux.conf`:
 
-### Manual installation
+   ```tmux
+   set -g @plugin 'ahmad9059/AgentsTmux'
+   ```
 
-```sh
-git clone https://github.com/ahmad9059/AgentsTmux.git ~/.tmux/plugins/AgentsTmux
-cd ~/.tmux/plugins/AgentsTmux
-cargo build --release
-```
+2. Reload your tmux configuration.
+3. Press your tmux prefix, followed by **I**.
+4. Select **Build from source** in the installer if a release binary is unavailable.
 
-Then add the launcher to `~/.tmux.conf` and reload:
+The plugin configures supported agents that it detects. No separate setup script is necessary.
+See [Agent setup](#agent-setup) for agent-specific steps.
 
-```tmux
-run-shell ~/.tmux/plugins/AgentsTmux/agents-tmux.tmux
-```
+### Install manually
+
+1. Clone the repository:
+
+   ```sh
+   git clone https://github.com/ahmad9059/AgentsTmux.git ~/.tmux/plugins/AgentsTmux
+   ```
+
+2. Build the binary:
+
+   ```sh
+   cd ~/.tmux/plugins/AgentsTmux
+   cargo build --release
+   ```
+
+3. Add the launcher to `~/.tmux.conf`:
+
+   ```tmux
+   run-shell ~/.tmux/plugins/AgentsTmux/agents-tmux.tmux
+   ```
+
+4. Reload your tmux configuration.
+
+### Open the sidebar
+
+Press your tmux prefix, followed by **e**.
+
+By default, AgentsTmux also creates the sidebar in windows named **Agents** or **Agent**.
+This applies to new, renamed, and restored windows. AgentsTmux does not create a sidebar in every window by default.
 
 ## Agent setup
 
-Nothing to run. Each time the plugin loads it runs `agents-tmux integrate --auto` in the background, which configures the agents it detects and skips the rest. It is idempotent, keeps your unrelated settings, and backs up any file it changes to `~/.local/state/agentstmux/backups/`.
+Each plugin load runs `agents-tmux integrate --auto` in the background.
+The installer skips agents that it does not detect. Repeated runs preserve unrelated settings.
+Before changing a file, the installer saves a backup under `~/.local/state/agentstmux/backups/`.
 
-- **Claude Code** (`claude` on `PATH`): installs `agents-tmux@agentstmux` from this repository's local marketplace. Start a new Claude session to load it.
-- **Codex** (`~/.codex` exists): merges lifecycle hooks into `~/.codex/hooks.json`. Review and trust the new definitions with `/hooks`; hook trust is never bypassed.
-- **OpenCode V2** (`~/.config/opencode` exists): links the bundled TUI plugin and adds it to `cli.json`. It runs in the local client so events target the correct `TMUX_PANE`, rather than the shared server's environment. Use `/reload` if OpenCode is already running.
-- **Pi** (`~/.pi/agent` exists): links the bundled extension. Pi uses the Claude-compatible adapter and badge; its preview payloads are marked `[Pi]`.
+| Agent | Detection | Configuration |
+|---|---|---|
+| Claude Code | `claude` is on `PATH` | Installs `agents-tmux@agentstmux` from this repository's local marketplace |
+| Codex | `~/.codex` exists | Adds lifecycle hooks to `~/.codex/hooks.json` |
+| OpenCode V2 | `~/.config/opencode` exists | Links the bundled TUI plugin and adds it to `cli.json` |
+| Pi | `~/.pi/agent` exists | Links the bundled extension |
 
-To opt out, add `set -g @agentstmux_auto_setup off` before the plugin loads. To set up an agent that was not detected, or to run the step by hand, use `agents-tmux integrate --all` (or `--claude --codex --opencode --pi`).
+After configuration:
 
-The original V1-style OpenCode bridge is retained at `integrations/opencode-v1/agents-tmux.js`; do not load it in OpenCode V2.
+- **Claude Code:** Start a new Claude session to load the plugin.
+- **Codex:** Review the new hooks with `/hooks`. Trust the hooks before use. AgentsTmux does not bypass hook trust.
+- **OpenCode V2:** Use `/reload` if OpenCode is already running.
+  The integration runs in the local client, so events identify the source tmux pane.
+- **Pi:** The extension uses the Claude-compatible adapter and badge. Preview text includes the `[Pi]` prefix.
 
-When replacing an older sidebar installation, disable its plugin and hooks. AgentsTmux never removes differently named integrations from your settings; leaving both enabled can produce duplicate events.
-
-For custom plugin locations, set `AGENTSTMUX_HOOK` to the absolute path of `hook.sh` before launching OpenCode or Pi.
-
-## Usage
-
-- **Prefix + e:** toggle the sidebar in the current window.
-- **Prefix + E:** toggle sidebars across windows.
-- **Click an agent**, or navigate with **j/k** or the arrow keys and press **Enter**, to show it in the right pane.
-- Folders and agents are listed in creation order: a new folder goes to the bottom of the sidebar, and a new agent goes to the bottom of its folder.
-- Use the project **+** button to start an agent. It opens a form in a popup centered over the window (Tab or ↑/↓ to move, ←/→ to change agent and mode, Esc to cancel). The folder field is prefilled with the current folder; edit it (or press **Ctrl+U** to clear it) to open the agent elsewhere. `~` and relative paths work, and the folder must already exist.
-- `agents-tmux spawn [folder]` does the same from a shell.
-- The bottom section shows **Usage** for the agent in view, with a simple divider and spaced meters and details. There are no tabs.
-- Claude and Codex details come from their local session journals: provider, model, session usage, and today's usage where available. Costs are shown only when reported by the agent; otherwise usage is shown in tokens. These local figures are separate from the subscription-limit percentages above them.
-- When the agent in view exits (`/exit`, Ctrl+C) or is closed, the window switches to another agent instead of leaving you at a shell: first one in the same folder (the one above it, else below), otherwise the top agent of the nearest folder above (else below). The leftover shell of an agent started from the sidebar is closed.
-- Use an agent's **×** button for removal options. Removing an agent does not close the shared host window.
-
-The sidebar is never opened in every window automatically. It is created by hand with **prefix + e**, and automatically in windows named "Agents" or "Agent" (new, renamed, or restored ones). Set `@sidebar_auto_create` to `on` for every new window, or `off` for none. `@sidebar_width` sets the width in columns (default `32`) or as a percentage such as `15%`.
-
-In single-window mode, other agents remain in a detached `__agent-sidebar-*` holding session. These are live panes, not suspended processes. Do not kill the holding session unless you intend to stop those agents.
-
-### Sound effects
-
-Sounds are on by default and follow the same rules as desktop notifications: only for events you have enabled, only when the agent is out of view, and never when an old session is merely re-selected. They are bundled in the binary and played with the first player found on your system (`pw-play`, `paplay`, `aplay`, `afplay`, `mpv`, `ffplay`, or `play`).
+To disable automatic configuration, add this setting before the plugin loads:
 
 ```tmux
-set -g @sidebar_sound off                          # turn sounds off
-set -g @sidebar_sound_done ~/sounds/finished.wav   # your own file for "finished"
-set -g @sidebar_sound_request ~/sounds/ask.wav     # your own file for "needs you"
+set -g @agentstmux_auto_setup off
 ```
 
-Run `agents-tmux play-sound done` or `agents-tmux play-sound request` to test your setup. The bundled sounds are synthesized by `scripts/generate-sounds.py`.
+To configure agents manually, run:
 
-### Configuration
+```sh
+agents-tmux integrate --all
+```
 
-These are the built-in defaults, applied only when you have not set the option yourself. Put your own values in `~/.tmux.conf` before the plugin loads to override them ([`examples/agents-tmux.conf`](examples/agents-tmux.conf) lists them all). Set `AGENTSTMUX_SHOW_PREVIEWS 1` to show prompt/reply previews again.
+You can select individual agents with `--claude`, `--codex`, `--opencode`, or `--pi`.
+
+Command examples assume that `agents-tmux` is on `PATH`.
+Otherwise, use the binary in `bin/` or `target/release/` inside the plugin folder.
+
+### Existing installations and custom paths
+
+- Disable the old sidebar plugin before using AgentsTmux.
+- Disable the old sidebar hooks. AgentsTmux does not remove integrations with different names. Two active integrations can produce duplicate events.
+- Do not load `integrations/opencode-v1/agents-tmux.js` in OpenCode V2. That file supports the older OpenCode integration.
+- For a custom plugin location, set `AGENTSTMUX_HOOK` to the absolute path of `hook.sh` before starting OpenCode or Pi.
+
+## Controls
+
+| Control | Action |
+|---|---|
+| **Prefix + e** | Show or hide the sidebar in the current window |
+| **Prefix + E** | Show or hide sidebars across windows |
+| Click an agent | Show that agent in the right pane |
+| **j/k** or arrow keys | Move the sidebar selection |
+| **Enter** | Show the selected agent |
+| Folder **+** button | Open the new-agent form |
+| Agent **×** button | Open removal options |
+
+### Start an agent
+
+1. Select the folder's **+** button.
+2. Select the agent and permission mode in the form.
+3. Keep the folder path or enter another existing folder.
+4. Submit the form.
+
+The form appears in a popup at the center of the window.
+The folder field starts with the current folder. It accepts `~` and relative paths.
+
+| Form control | Action |
+|---|---|
+| **Tab**, **↑**, or **↓** | Move between fields |
+| **←** or **→** | Change the agent or permission mode |
+| **Ctrl+U** | Clear the folder field |
+| **Esc** | Cancel |
+
+To start an agent from a shell, run:
+
+```sh
+agents-tmux spawn [folder]
+```
+
+### Agent exits and removal
+
+When the visible agent exits or closes, AgentsTmux selects another agent in this order:
+
+1. The agent above it in the same folder.
+2. The agent below it in the same folder.
+3. The first agent in the nearest folder above.
+4. The first agent in the nearest folder below.
+
+AgentsTmux closes the remaining shell if the sidebar originally started that agent.
+Closing an agent does not change its folder or close the shared Agents window.
+
+Other agents use a detached tmux session named `__agent-sidebar-*`. Their processes continue to run there.
+**Do not kill that session unless you intend to stop those agents.**
+
+The first agent started from a sidebar establishes that window as the session's host.
+AgentsTmux does not automatically move agents from existing windows into that host window.
+
+Advanced users can adopt a pane with:
+
+```sh
+agents-tmux workspace-select <host-window> <pane> <owner-session>
+```
+
+Existing window markers become pane markers before the swap. Moving an existing window from the main tab bar requires a separate tmux operation.
+
+## Usage section
+
+The **Usage** section follows the agent in view. It has no tabs or surrounding box.
+
+| Agent | Available data |
+|---|---|
+| Claude Code | Five-hour and weekly subscription limits, reset times, plan, and extra usage |
+| Codex | Primary and weekly subscription limits, reset times, plan, and credits |
+| OpenCode and Pi | Local session usage and subscription limits when their provider supplies them |
+
+The section also shows these details where available:
+
+- **Using:** the provider.
+- **Model:** the model name from session data or the agent's visible interface.
+- **Session:** reported cost and token usage for the current session.
+- **Today:** reported daily cost or token usage.
+- **Extra:** additional provider usage or credits.
+
+Token counts are not subscription percentages. AgentsTmux shows costs only when the agent reports them.
+It does not estimate missing costs from model prices.
+
+Local data refreshes every 10 seconds. Subscription requests share a 60-second cache across sidebar instances.
+Provider retry delays can extend that interval.
+
+After a temporary failure, the section can retain cached bars for up to one hour.
+An age label identifies those cached values. If data is unavailable, the section explains why.
+
+OpenCode and Pi use their own provider credentials. AgentsTmux does not substitute an unrelated CLI account.
+If Claude's request is rate-limited, an OpenCode credential can supply its limits only after Anthropic verifies the same account and organization.
+
+## Configuration
+
+Add settings to `~/.tmux.conf` before the plugin loads.
+AgentsTmux applies defaults only to options that you did not set.
+See [`examples/agents-tmux.conf`](examples/agents-tmux.conf) for example overrides.
 
 ```tmux
 set -g @sidebar_single_window on
-set -g @sidebar_icon_running '⟳'
-set -g @sidebar_icon_idle '✓'
-set -g @sidebar_color_idle '#4caf50'
+set -g @sidebar_width 32
+set -g @sidebar_auto_create agents
+set -g @sidebar_bottom_height 20
 set-environment -g AGENTSTMUX_SHOW_PREVIEWS 0
 ```
 
-The first spawn from a sidebar records that window as its session's host. Existing agents in other windows are not silently migrated. Advanced users can adopt a pane with `agents-tmux workspace-select <host-window> <pane> <owner-session>`; existing markers are promoted to pane scope before swapping. Moving an existing window out of the main tab bar is a separate, explicit tmux operation.
+These values are the defaults:
 
-Restart only the sidebar (toggle off, then on) after installing a newly built binary or changing startup-only appearance settings. Your agents can keep running.
+| Setting | Meaning |
+|---|---|
+| `@sidebar_single_window on` | Use one host window for agents |
+| `@sidebar_width 32` | Use a sidebar width of 32 columns |
+| `@sidebar_auto_create agents` | Automatically create sidebars only in windows named Agents or Agent |
+| `@sidebar_bottom_height 20` | Reserve 20 rows for Usage |
+| `AGENTSTMUX_SHOW_PREVIEWS 0` | Hide prompt and reply previews |
+
+Additional options:
+
+- Use a percentage such as `15%` for `@sidebar_width` to size the sidebar relative to the window.
+- Set `@sidebar_auto_create on` to create a sidebar in every new window.
+- Set `@sidebar_auto_create off` to disable automatic sidebar creation.
+- Set `@sidebar_bottom_height 0` to hide Usage.
+- Set `AGENTSTMUX_SHOW_PREVIEWS` to `1` to show prompt and reply previews.
+
+### Status indicators and colors
+
+| State | Default indicator |
+|---|---|
+| Working | Animated yellow braille spinner |
+| Background work | Blue orbiting dot |
+| Needs attention | Blinking orange dot |
+| Ready | Green ring |
+| Error | Red dot |
+
+Setting an icon replaces its animation with a static glyph. Color values accept an xterm-256 index or a six-digit hexadecimal value.
+
+```tmux
+set -g @sidebar_icon_running '⠋'
+set -g @sidebar_icon_idle '○'
+set -g @sidebar_color_idle '#98c379'
+set -g @sidebar_color_selection '#13142e'
+```
+
+These are example overrides, not the complete default configuration.
+The sidebar preserves its configured width when the terminal size changes.
+
+### Notifications and sounds
+
+AgentsTmux enables sounds by default. A chime indicates completion.
+A double ping indicates a question, permission request, or failure.
+
+Alerts follow these conditions:
+
+- The event's notification setting must be enabled.
+- The source agent must not be visible.
+- Selecting an old session must not replay its completion alert.
+
+On Hyprland, AgentsTmux suppresses desktop alerts when the source tmux window is visible on an active workspace.
+Papirus supplies completion, question, and error icons when available. Otherwise, AgentsTmux uses theme icons.
+
+The binary includes the sounds. Playback uses the first available player from this list:
+`pw-play`, `paplay`, `aplay`, `afplay`, `mpv`, `ffplay`, or `play`.
+
+```tmux
+set -g @sidebar_sound off
+set -g @sidebar_sound_done ~/sounds/finished.wav
+set -g @sidebar_sound_request ~/sounds/ask.wav
+```
+
+The first setting disables sound. The other settings select custom sound files.
+
+To test the bundled sounds, run:
+
+```sh
+agents-tmux play-sound done
+agents-tmux play-sound request
+```
+
+The script [`scripts/generate-sounds.py`](scripts/generate-sounds.py) generates the bundled sounds.
+
+### Apply updates
+
+After installing a new binary or changing startup-only appearance settings:
+
+1. Hide the sidebar with **Prefix + e**.
+2. Show it again with **Prefix + e**.
+
+Your agents can continue to run during the sidebar restart.
 
 ## Development
+
+Run these commands from the repository folder:
 
 ```sh
 cargo fmt
@@ -123,14 +328,23 @@ cargo clippy
 cargo build --release
 ```
 
-Additional tests cover stable ordering, persistent highlighting, silent session snapshots, and question notifications. [`tests/workspace_tests.rs`](tests/workspace_tests.rs) contains an opt-in real-tmux lifecycle test; run it only against an isolated disposable tmux server. The standard test suite skips that test.
+Tests cover agent ordering, selection, session snapshots, notifications, usage data, and interface rendering.
 
-The [`website/`](website/) directory contains the documentation site source. Its Pages deployment is manual until GitHub Pages is enabled for this repository. No hosted documentation URL is required for installation.
+[`tests/workspace_tests.rs`](tests/workspace_tests.rs) includes tests that use a real tmux server.
+The standard test suite skips these tests. Run them only against an isolated, disposable tmux server.
+
+The [`website/`](website/) folder contains the documentation site source.
+Pages deployment remains manual until you enable GitHub Pages for this repository.
+Installation does not require a hosted documentation site.
 
 ## License
 
-MIT. The original copyright notice is retained in [`LICENSE`](LICENSE).
+AgentsTmux uses the MIT license. [`LICENSE`](LICENSE) retains the original copyright notice.
 
 ## Credits
 
-AgentsTmux is based on [tmux-agent-sidebar](https://github.com/hiroppy/tmux-agent-sidebar) by [hiroppy (Yuta Hiroto)](https://github.com/hiroppy). Thank you for the original sidebar, agent adapters, and documentation. AgentsTmux is independently maintained by [ahmad9059](https://github.com/ahmad9059), with the single-window workspace, selection and ordering fixes, compact views, notification improvements, and additional integrations described above.
+AgentsTmux derives from [tmux-agent-sidebar](https://github.com/hiroppy/tmux-agent-sidebar) by [hiroppy (Yuta Hiroto)](https://github.com/hiroppy).
+Thank you for the original sidebar, agent adapters, and documentation.
+
+[ahmad9059](https://github.com/ahmad9059) maintains AgentsTmux independently.
+AgentsTmux adds the single-window workspace, selection and ordering fixes, compact views, notification changes, and integrations described above.
