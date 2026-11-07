@@ -40,6 +40,8 @@ pub fn run(
         session_rx,
         version_rx,
         git_tab_active,
+        usage_tx,
+        usage_rx,
     } = workers;
 
     let mut last_refresh = std::time::Instant::now();
@@ -106,6 +108,15 @@ pub fn run(
                 window_inactive_count = window_inactive_count.saturating_add(1);
             }
             git_tab_active.store(state.bottom_tab == BottomTab::GitStatus, Ordering::Relaxed);
+            // Queue a usage fetch when the focused agent changed, or when
+            // the visible Usage tab has gone stale. Focus changes therefore
+            // refresh immediately instead of waiting for the next interval.
+            if let Some(target) = crate::state::UsageState::target(&state) {
+                let visible = state.bottom_tab == BottomTab::Usage;
+                if state.usage.should_request(&target.key, visible) {
+                    let _ = usage_tx.send(target);
+                }
+            }
             last_refresh = std::time::Instant::now();
         }
 
@@ -122,6 +133,11 @@ pub fn run(
 
         if let Ok(notice) = version_rx.try_recv() {
             state.version_notice = Some(notice);
+            needs_redraw = true;
+        }
+
+        if let Ok(snapshot) = usage_rx.try_recv() {
+            state.usage.apply(snapshot);
             needs_redraw = true;
         }
 

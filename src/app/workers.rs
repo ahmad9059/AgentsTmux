@@ -8,6 +8,7 @@ use crate::git::{self, GitData};
 use crate::session;
 use crate::state::{AppState, BottomTab};
 use crate::tmux;
+use crate::usage::{UsageFetcher, UsageSnapshot, UsageTarget};
 use crate::version::{self, UpdateNotice};
 
 /// Channels and shared flags produced by [`spawn`] that the main event loop
@@ -17,6 +18,11 @@ pub(super) struct Workers {
     pub session_rx: Receiver<HashMap<String, String>>,
     pub version_rx: Receiver<UpdateNotice>,
     pub git_tab_active: Arc<AtomicBool>,
+    /// Send the agent whose usage should be fetched; the worker replies on
+    /// `usage_rx`. Kept separate from the git thread because a usage fetch
+    /// can block on the network for seconds.
+    pub usage_tx: mpsc::Sender<UsageTarget>,
+    pub usage_rx: Receiver<UsageSnapshot>,
 }
 
 /// Spawn the background threads (git polling, session-name polling, version
@@ -34,6 +40,7 @@ pub(super) fn spawn(state: &AppState) -> Workers {
     std::thread::spawn(move || {
         session_poll_loop(&session_tx);
     });
+    let (usage_tx, usage_rx) = usage_channel();
     std::thread::spawn(move || {
         if let Some(notice) = version::fetch_update_notice() {
             let _ = version_tx.send(notice);
@@ -45,7 +52,35 @@ pub(super) fn spawn(state: &AppState) -> Workers {
         session_rx,
         version_rx,
         git_tab_active,
+        usage_tx,
+        usage_rx,
     }
+}
+
+/// Create the usage request/reply pair and start its worker thread.
+///
+/// The thread owns the [`UsageFetcher`] so its account-wide provider cache
+/// lives across requests — switching between two Claude panes reuses the
+/// same HTTP response instead of re-fetching it.
+pub(super) fn usage_channel() -> (mpsc::Sender<UsageTarget>, Receiver<UsageSnapshot>) {
+    let (request_tx, request_rx) = mpsc::channel::<UsageTarget>();
+    let (snapshot_tx, snapshot_rx) = mpsc::channel::<UsageSnapshot>();
+    std::thread::spawn(move || {
+        let mut fetcher = UsageFetcher::new();
+        // Drain every queued request so a burst of focus changes collapses
+        // to the newest one instead of replaying stale agents.
+        while let Ok(first) = request_rx.recv() {
+            let mut target = first;
+            while let Ok(newer) = request_rx.try_recv() {
+                target = newer;
+            }
+            let snapshot = fetcher.fetch(&target);
+            if snapshot_tx.send(snapshot).is_err() {
+                return;
+            }
+        }
+    });
+    (request_tx, snapshot_rx)
 }
 
 /// Session name polling thread. Scans `~/.claude/sessions/*.json` every 10

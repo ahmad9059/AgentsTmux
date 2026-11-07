@@ -6,7 +6,8 @@ pub enum Focus {
     Filter,
     #[default]
     Panes,
-    ActivityLog,
+    /// Keyboard focus sits in the bottom panel (Usage / Git).
+    BottomPanel,
 }
 
 #[derive(Debug, Clone)]

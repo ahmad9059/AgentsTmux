@@ -1,7 +1,6 @@
 #[allow(dead_code, unused_imports)]
 mod test_helpers;
 
-use agents_tmux::activity::ActivityEntry;
 use agents_tmux::state::{BottomTab, Focus};
 use agents_tmux::tmux::{AgentType, PaneStatus, SessionInfo, WindowInfo};
 use test_helpers::*;
@@ -11,32 +10,20 @@ use test_helpers::*;
 #[test]
 fn test_next_bottom_tab() {
     let mut state = make_state(vec![]);
-    assert_eq!(state.bottom_tab, BottomTab::Activity);
+    assert_eq!(state.bottom_tab, BottomTab::Usage);
     state.next_bottom_tab();
     assert_eq!(state.bottom_tab, BottomTab::GitStatus);
     state.next_bottom_tab();
-    assert_eq!(state.bottom_tab, BottomTab::Activity);
+    assert_eq!(state.bottom_tab, BottomTab::Usage);
 }
 
 #[test]
 fn test_scroll_bottom_dispatches() {
     let mut state = make_state(vec![]);
 
-    // Set up activity scroll state
-    state.activity.entries = vec![
-        ActivityEntry {
-            timestamp: "10:00".into(),
-            tool: "Read".into(),
-            label: "a".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:01".into(),
-            tool: "Edit".into(),
-            label: "b".into(),
-        },
-    ];
-    state.activity.scroll.total_lines = 6;
-    state.activity.scroll.visible_height = 4;
+    // Set up usage scroll state
+    state.usage.scroll.total_lines = 6;
+    state.usage.scroll.visible_height = 4;
 
     // Set up git scroll state
     state.git.unstaged_files = vec![
@@ -59,17 +46,17 @@ fn test_scroll_bottom_dispatches() {
     state.scrolls.git.total_lines = 3;
     state.scrolls.git.visible_height = 1;
 
-    // Activity tab: scroll should affect activity
-    state.bottom_tab = BottomTab::Activity;
+    // Usage tab: scroll should affect usage
+    state.bottom_tab = BottomTab::Usage;
     state.scroll_bottom(1);
-    assert_eq!(state.activity.scroll.offset, 1);
+    assert_eq!(state.usage.scroll.offset, 1);
     assert_eq!(state.scrolls.git.offset, 0);
 
     // Git tab: scroll should affect git
     state.bottom_tab = BottomTab::GitStatus;
     state.scroll_bottom(1);
     assert_eq!(state.scrolls.git.offset, 1);
-    assert_eq!(state.activity.scroll.offset, 1); // unchanged
+    assert_eq!(state.usage.scroll.offset, 1); // unchanged
 }
 
 #[test]
@@ -89,7 +76,7 @@ fn snapshot_git_status_tab_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "feature/sidebar".into();
     state.git.ahead_behind = Some((2, 1));
@@ -116,7 +103,7 @@ fn snapshot_git_status_tab_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │feature/sidebar       ↑2↓1│
     │+42/-15            3 files│
     │──────────────────────────│
@@ -146,7 +133,7 @@ fn snapshot_git_clean_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     // No git changes
 
@@ -154,14 +141,14 @@ fn snapshot_git_clean_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │    Working tree clean    │
     ╰──────────────────────────╯
     ");
 }
 
 #[test]
-fn snapshot_activity_tab_active_ui() {
+fn snapshot_usage_tab_active_ui() {
     let pane = make_pane(AgentType::Claude, PaneStatus::Running);
     let mut state = make_state(vec![SessionInfo {
         session_name: "main".into(),
@@ -175,29 +162,27 @@ fn snapshot_activity_tab_active_ui() {
     }]);
     state.repo_groups = vec![make_repo_group("project", vec![pane])];
     state.rebuild_row_targets();
+    attach_usage(&mut state, claude_usage());
 
-    state.bottom_tab = BottomTab::Activity;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.bottom_tab = BottomTab::Usage;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
-    state.activity.entries = vec![ActivityEntry {
-        timestamp: "10:32".into(),
-        tool: "Edit".into(),
-        label: "src/main.rs".into(),
-    }];
 
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
-    │10:32                 Edit│
-    │  src/main.rs             │
+    ╭ Usage │ Git ─────────────╮
+    │Claude Code · max         │
+    │5h █████████░  2h 00m  91%│
+    │1w █████░░░░░   3d 0h  51%│
+    │Extra $22.24 / $20.00     │
     ╰──────────────────────────╯
     ");
 }
 
 #[test]
-fn activity_tab_leaves_one_blank_row_above_entries() {
+fn snapshot_usage_tab_loading_ui() {
     let pane = make_pane(AgentType::Claude, PaneStatus::Running);
     let mut state = make_state(vec![SessionInfo {
         session_name: "main".into(),
@@ -211,36 +196,23 @@ fn activity_tab_leaves_one_blank_row_above_entries() {
     }]);
     state.repo_groups = vec![make_repo_group("project", vec![pane])];
     state.rebuild_row_targets();
-
-    state.bottom_tab = BottomTab::Activity;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.bottom_tab = BottomTab::Usage;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
-    state.activity.entries = vec![ActivityEntry {
-        timestamp: "10:32".into(),
-        tool: "Edit".into(),
-        label: "src/main.rs".into(),
-    }];
 
-    // The inline snapshot locks in the blank-row spacer: after the `╭ Activity │ Git ╮`
-    // title row, the first row must be empty and the timestamp/tool row must appear
-    // one row further down.
-    insta::assert_snapshot!(render_to_string(&mut state, 28, 24), @"
+    let output = render_to_string(&mut state, 28, 24);
+    insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
-    │10:32                 Edit│
-    │  src/main.rs             │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
 
 #[test]
-fn snapshot_activity_long_tool_keeps_one_space_gap() {
-    // A long MCP tool name whose width plus the timestamp would fill or
-    // overflow the inner width used to collide with the timestamp because
-    // the right-align pad saturated to zero. The row must still carry at
-    // least one space between them.
-    let pane = make_pane(AgentType::Claude, PaneStatus::Running);
+fn snapshot_usage_tab_opencode_local_spend_ui() {
+    let pane = make_pane(AgentType::OpenCode, PaneStatus::Running);
     let mut state = make_state(vec![SessionInfo {
         session_name: "main".into(),
         windows: vec![WindowInfo {
@@ -253,22 +225,39 @@ fn snapshot_activity_long_tool_keeps_one_space_gap() {
     }]);
     state.repo_groups = vec![make_repo_group("project", vec![pane])];
     state.rebuild_row_targets();
+    attach_usage(&mut state, opencode_usage());
 
-    state.bottom_tab = BottomTab::Activity;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.bottom_tab = BottomTab::Usage;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
-    state.activity.entries = vec![ActivityEntry {
-        timestamp: "10:32".into(),
-        tool: "mcp__context7__query-docs".into(),
-        label: "rust".into(),
-    }];
+
+    let output = render_to_string(&mut state, 28, 24);
+    insta::assert_snapshot!(output, @"
+    ⓘ  Agents               — 
+    project
+    ╭ Usage │ Git ─────────────╮
+    │OpenCode                  │
+    │Using   commandcode       │
+    │Model   deepseek-v4.1-fl… │
+    │Session $15.22 · 1.2M tok │
+    │Today   $20.50            │
+    │No limits for commandcode │
+    ╰──────────────────────────╯
+    ");
+}
+
+#[test]
+fn snapshot_usage_tab_without_agents_ui() {
+    let mut state = make_state(vec![]);
+    state.bottom_tab = BottomTab::Usage;
+    state.focus_state.focus = Focus::BottomPanel;
+    state.focus_state.sidebar_focused = true;
 
     let output = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
-    │10:32 mcp__context7__query│
-    │  rust                    │
+    ╭ Usage │ Git ─────────────╮
+    │     No agent selected    │
     ╰──────────────────────────╯
     ");
 }
@@ -288,19 +277,16 @@ fn snapshot_tab_bar_renders_both_labels() {
     }]);
     state.repo_groups = vec![make_repo_group("project", vec![pane])];
     state.rebuild_row_targets();
-
-    state.activity.entries = vec![ActivityEntry {
-        timestamp: "10:32".into(),
-        tool: "Edit".into(),
-        label: "test".into(),
-    }];
+    attach_usage(&mut state, claude_usage());
 
     let output = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
-    │10:32                 Edit│
-    │  test                    │
+    ╭ Usage │ Git ─────────────╮
+    │Claude Code · max         │
+    │5h █████████░  2h 00m  91%│
+    │1w █████░░░░░   3d 0h  51%│
+    │Extra $22.24 / $20.00     │
     ╰──────────────────────────╯
     ");
 }
@@ -324,7 +310,7 @@ fn snapshot_git_full_info_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.ahead_behind = Some((0, 0));
@@ -352,7 +338,7 @@ fn snapshot_git_full_info_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │+120/-30           3 files│
     │──────────────────────────│
@@ -382,7 +368,7 @@ fn snapshot_git_diff_summary_tight_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.diff_stat = Some((10, 3));
@@ -390,7 +376,7 @@ fn snapshot_git_diff_summary_tight_ui() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │+10/-3             0 files│
     │──────────────────────────│
@@ -416,7 +402,7 @@ fn snapshot_git_staged_file_diff_right_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.diff_stat = Some((10, 2));
@@ -431,7 +417,7 @@ fn snapshot_git_staged_file_diff_right_ui() {
     let plain = render_to_string(&mut state, 28, 18);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │+10/-2             1 files│
     │──────────────────────────│
@@ -458,7 +444,7 @@ fn snapshot_git_unstaged_long_name_diff_right_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.diff_stat = Some((150, 50));
@@ -473,7 +459,7 @@ fn snapshot_git_unstaged_long_name_diff_right_ui() {
     let plain = render_to_string(&mut state, 28, 18);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │+150/-50           1 files│
     │──────────────────────────│
@@ -500,7 +486,7 @@ fn snapshot_git_long_filename_truncated_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.unstaged_files = vec![
@@ -525,7 +511,7 @@ fn snapshot_git_long_filename_truncated_ui() {
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │                   2 files│
     │──────────────────────────│
@@ -553,7 +539,7 @@ fn snapshot_git_more_than_5_files() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.unstaged_files = vec![
@@ -614,7 +600,7 @@ fn snapshot_git_more_than_5_files() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │                   7 files│
     │──────────────────────────│
@@ -640,7 +626,7 @@ fn snapshot_git_more_than_5_files() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │                   7 files│
     │──────────────────────────│
@@ -673,7 +659,7 @@ fn snapshot_git_branch_only_no_changes() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "feature/long-branch-name".into();
     state.git.ahead_behind = Some((5, 0));
@@ -681,7 +667,7 @@ fn snapshot_git_branch_only_no_changes() {
     let plain = render_to_string(&mut state, 38, 20);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents                         — 
-    ╭ Activity │ Git ────────────────────╮
+    ╭ Usage │ Git ───────────────────────╮
     │feature/long-branch-name          ↑5│
     │────────────────────────────────────│
     │         Working tree clean         │
@@ -706,7 +692,7 @@ fn snapshot_git_pr_number_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "feature/fix".into();
     state.git.pr_number = Some("42".into());
@@ -716,7 +702,7 @@ fn snapshot_git_pr_number_ui() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │feature/fix            #42│
     │+10/-3             0 files│
     │──────────────────────────│
@@ -728,7 +714,7 @@ fn snapshot_git_pr_number_ui() {
     insta::assert_snapshot!(render_to_styled_string(&mut state, 28, 14), @"
     ⓘ[fg:208] [fg:39,bold] [fg:39,bold]A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold]               —[fg:252] [fg:252]
 
-    ╭[fg:153] [fg:153]A[fg:252]c[fg:252]t[fg:252]i[fg:252]v[fg:252]i[fg:252]t[fg:252]y[fg:252] [fg:240]│[fg:240] [fg:240]G[fg:153]i[fg:153]t[fg:153] [fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]╮[fg:153]
+    ╭[fg:153] [fg:153]U[fg:252]s[fg:252]a[fg:252]g[fg:252]e[fg:252] [fg:240]│[fg:240] [fg:240]G[fg:153]i[fg:153]t[fg:153] [fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]╮[fg:153]
     │[fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]│[fg:153]
     │[fg:153]f[fg:255]e[fg:255]a[fg:255]t[fg:255]u[fg:255]r[fg:255]e[fg:255]/[fg:255]f[fg:255]i[fg:255]x[fg:255] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]#[fg:117,underline]4[fg:117,underline]2[fg:117,underline]│[fg:153]
     │[fg:153]+[fg:114]1[fg:114]0[fg:114]/[fg:252]-[fg:174]3[fg:174] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]0[fg:252] [fg:252]f[fg:252]i[fg:252]l[fg:252]e[fg:252]s[fg:252]│[fg:153]
@@ -768,7 +754,7 @@ fn snapshot_git_pr_with_diff_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.pr_number = Some("123".into());
@@ -778,7 +764,7 @@ fn snapshot_git_pr_with_diff_ui() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                  #123│
     │+55/-20            0 files│
     │──────────────────────────│
@@ -813,8 +799,8 @@ fn snapshot_subagents_tree_ui() {
         ├ Explore #1
         ├ Plan #2
         └ Explore #2
-    ╭ Activity │ Git ──────────────────────╮
-    │            No activity yet           │
+    ╭ Usage │ Git ─────────────────────────╮
+    │            Loading usage…            │
     ╰──────────────────────────────────────╯
     ");
 }
@@ -848,8 +834,8 @@ fn snapshot_subagent_long_name_truncated_ui() {
     ┃ ⠋ claude
         ├ superpowers:code-revi…
         └ claude-code-guide #2
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 
@@ -857,36 +843,6 @@ fn snapshot_subagent_long_name_truncated_ui() {
 }
 
 // ─── Empty State Centered Tests ─────────────────────────────────────
-
-#[test]
-fn snapshot_activity_empty_centered_ui() {
-    let pane = make_pane(AgentType::Claude, PaneStatus::Idle);
-    let mut state = make_state(vec![SessionInfo {
-        session_name: "main".into(),
-        windows: vec![WindowInfo {
-            window_id: "@1".into(),
-            window_name: "project".into(),
-            window_active: true,
-            auto_rename: false,
-            panes: vec![pane.clone()],
-        }],
-    }]);
-    state.repo_groups = vec![make_repo_group("project", vec![pane])];
-    state.rebuild_row_targets();
-    state.bottom_tab = BottomTab::Activity;
-    // No activity entries — should show centered "No activity yet"
-
-    let output = render_to_string(&mut state, 28, 26);
-    insta::assert_snapshot!(output, @"
-    ⓘ  Agents               — 
-    project
-    ┃ ○ claude
-        Waiting for prompt…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
-    ╰──────────────────────────╯
-    ");
-}
 
 #[test]
 fn snapshot_git_clean_centered_ui() {
@@ -912,7 +868,7 @@ fn snapshot_git_clean_centered_ui() {
     project
     ┃ ○ claude
         Waiting for prompt…
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │    Working tree clean    │
     ╰──────────────────────────╯
     ");
@@ -940,7 +896,7 @@ fn snapshot_git_branch_loaded_no_changes_shows_inline_clean() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     // Branch loaded, but no changes/commits — should still show "Working tree clean"
     state.git.branch = "main".into();
@@ -949,7 +905,7 @@ fn snapshot_git_branch_loaded_no_changes_shows_inline_clean() {
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │──────────────────────────│
     │    Working tree clean    │
@@ -975,7 +931,7 @@ fn snapshot_git_no_data_shows_centered_clean() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     // No git data at all
 
@@ -983,7 +939,7 @@ fn snapshot_git_no_data_shows_centered_clean() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │    Working tree clean    │
     ╰──────────────────────────╯
     ");
@@ -1008,7 +964,7 @@ fn test_git_behind_only() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.ahead_behind = Some((0, 3));
@@ -1016,7 +972,7 @@ fn test_git_behind_only() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                    ↓3│
     │──────────────────────────│
     │    Working tree clean    │
@@ -1041,7 +997,7 @@ fn test_git_ahead_and_behind() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.ahead_behind = Some((2, 3));
@@ -1049,7 +1005,7 @@ fn test_git_ahead_and_behind() {
     let plain = render_to_string(&mut state, 38, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents                         — 
-    ╭ Activity │ Git ────────────────────╮
+    ╭ Usage │ Git ───────────────────────╮
     │main                            ↑2↓3│
     │────────────────────────────────────│
     │         Working tree clean         │
@@ -1076,7 +1032,7 @@ fn test_git_diff_insertions_only() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.diff_stat = Some((25, 0));
@@ -1084,7 +1040,7 @@ fn test_git_diff_insertions_only() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │+25/-0             0 files│
     │──────────────────────────│
@@ -1110,7 +1066,7 @@ fn test_git_diff_deletions_only() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.diff_stat = Some((0, 15));
@@ -1118,7 +1074,7 @@ fn test_git_diff_deletions_only() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │+0/-15             0 files│
     │──────────────────────────│
@@ -1162,8 +1118,8 @@ fn snapshot_branch_truncated_ui() {
     dotfiles                   +
     ┃ ⠋ claude
     ┃   feature/tmux-sidebar-da…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1185,7 +1141,7 @@ fn snapshot_git_staged_unstaged_untracked_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.pr_number = Some("5".into());
@@ -1220,7 +1176,7 @@ fn snapshot_git_staged_unstaged_untracked_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                    #5│
     │+12/-3             4 files│
     │──────────────────────────│
@@ -1252,7 +1208,7 @@ fn snapshot_git_long_branch_with_pr_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "feature/very-long-branch-name".into();
     state.git.pr_number = Some("123".into());
@@ -1269,7 +1225,7 @@ fn snapshot_git_long_branch_with_pr_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │feature/very-long-br… #123│
     │+5/-2              1 files│
     │──────────────────────────│
@@ -1297,7 +1253,7 @@ fn snapshot_git_staged_only_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "main".into();
     state.git.diff_stat = Some((20, 0));
@@ -1313,7 +1269,7 @@ fn snapshot_git_staged_only_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │main                      │
     │+20/-0             1 files│
     │──────────────────────────│
@@ -1340,7 +1296,7 @@ fn snapshot_git_many_files_more_indicator_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "dev".into();
     state.git.unstaged_files = (0..7)
@@ -1358,7 +1314,7 @@ fn snapshot_git_many_files_more_indicator_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │dev                       │
     │                   7 files│
     │──────────────────────────│
@@ -1392,7 +1348,7 @@ fn snapshot_git_more_than_10_files_ui() {
     state.rebuild_row_targets();
 
     state.bottom_tab = BottomTab::GitStatus;
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
     state.git.branch = "dev".into();
     state.git.unstaged_files = (0..12)
@@ -1410,7 +1366,7 @@ fn snapshot_git_more_than_10_files_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
+    ╭ Usage │ Git ─────────────╮
     │dev                       │
     │                  12 files│
     │──────────────────────────│
@@ -1477,7 +1433,7 @@ fn snapshot_focused_group_active_border_styled() {
        [fg:244] [fg:244]W[fg:244]a[fg:244]i[fg:244]t[fg:244]i[fg:244]n[fg:244]g[fg:244] [fg:244]f[fg:244]o[fg:244]r[fg:244] [fg:244]p[fg:244]r[fg:244]o[fg:244]m[fg:244]p[fg:244]t[fg:244]…[fg:244]
 
 
-    ╭[fg:240] [fg:240]A[fg:153]c[fg:153]t[fg:153]i[fg:153]v[fg:153]i[fg:153]t[fg:153]y[fg:153] [fg:240]│[fg:240] [fg:240]G[fg:252]i[fg:252]t[fg:252] [fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]╮[fg:240]
+    ╭[fg:240] [fg:240]U[fg:153]s[fg:153]a[fg:153]g[fg:153]e[fg:153] [fg:240]│[fg:240] [fg:240]G[fg:252]i[fg:252]t[fg:252] [fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]╮[fg:240]
     │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
     │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
     │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
@@ -1486,7 +1442,7 @@ fn snapshot_focused_group_active_border_styled() {
     │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
     │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
     │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]N[fg:252]o[fg:252] [fg:252]a[fg:252]c[fg:252]t[fg:252]i[fg:252]v[fg:252]i[fg:252]t[fg:252]y[fg:252] [fg:252]y[fg:252]e[fg:252]t[fg:252] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
+    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]L[fg:252]o[fg:252]a[fg:252]d[fg:252]i[fg:252]n[fg:252]g[fg:252] [fg:252]u[fg:252]s[fg:252]a[fg:252]g[fg:252]e[fg:252]…[fg:252] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
     │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
     │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
     │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
@@ -1526,8 +1482,8 @@ fn test_pet_enabled_preserves_bottom_panel_border() {
       ▄ ▄
      ▄▀▀▀▄                             ████
       ▀ ▀                           ██ █  █
-    ╭ Activity │ Git ──────────────────────╮
-    │            No activity yet           │
+    ╭ Usage │ Git ─────────────────────────╮
+    │            Loading usage…            │
     ╰──────────────────────────────────────╯
     ");
 }

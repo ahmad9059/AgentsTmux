@@ -145,7 +145,6 @@ impl AppState {
     }
 
     fn refresh_activity_data(&mut self) {
-        self.refresh_activity_log();
         self.refresh_task_progress();
         self.auto_switch_tab();
     }
@@ -351,28 +350,6 @@ impl AppState {
         }
         sweep_dead_bg_shells(sessions, process_snapshot);
         self.timers.last_bg_shell_sweep = Some(std::time::Instant::now());
-    }
-
-    pub(crate) fn refresh_activity_log(&mut self) {
-        let Some(ref pane_id) = self.focus_state.focused_pane_id else {
-            self.activity.entries.clear();
-            self.activity.log_cache = None;
-            return;
-        };
-        let current_mtime = activity::log_mtime(pane_id);
-        if let (Some(mtime), Some((cached_id, cached_mtime))) =
-            (current_mtime, self.activity.log_cache.as_ref())
-            && cached_id == pane_id
-            && *cached_mtime == mtime
-        {
-            return;
-        }
-        // Task-reset markers are internal bookkeeping for parse_task_progress;
-        // they should never appear in the user-facing Activity tab.
-        let mut entries = activity::read_activity_log(pane_id, self.activity.max_entries);
-        entries.retain(|e| e.tool != activity::TASK_RESET_MARKER);
-        self.activity.entries = entries;
-        self.activity.log_cache = current_mtime.map(|m| (pane_id.clone(), m));
     }
 }
 

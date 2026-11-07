@@ -1,7 +1,7 @@
 #[allow(dead_code, unused_imports)]
 mod test_helpers;
 
-use agents_tmux::activity::{ActivityEntry, TaskProgress, TaskStatus};
+use agents_tmux::activity::{TaskProgress, TaskStatus};
 use agents_tmux::group::{PaneGitInfo, RepoGroup};
 use agents_tmux::state::{Focus, PopupState, RepoFilter, StatusFilter};
 use agents_tmux::tmux::{
@@ -32,8 +32,8 @@ fn snapshot_single_agent_idle_ui() {
     ⓘ  Agents               — 
     ┃ ○ claude
         Waiting for prompt…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -65,8 +65,8 @@ fn snapshot_secondary_header_without_notices() {
      Agents                 — 
     ┃ ○ claude
         Waiting for prompt…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -94,8 +94,8 @@ fn snapshot_secondary_header_long_repo_filter_truncated() {
     ⓘ  very-long-repository-n… 
     ┃ ○ claude
         Waiting for prompt…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -153,8 +153,8 @@ fn snapshot_single_agent_running_with_elapsed() {
     ⓘ  Agents               — 
     dotfiles
     ┃ ⠋ claude              2m5s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -183,8 +183,8 @@ fn snapshot_long_session_name_truncated_keeps_elapsed_visible() {
     ⓘ  Agents               — 
     dotfiles
     ┃ ⠋ this-is-a-ridiculo… 2m5s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -211,8 +211,8 @@ fn running_spinner_different_frame() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -240,8 +240,8 @@ fn snapshot_agent_with_prompt_ui() {
     ⓘ  Agents               — 
     ┃ ○ claude
         fix the bug
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -271,8 +271,8 @@ fn snapshot_agent_with_japanese_prompt_ui() {
         こ れ っ て 今 1時 間 経 っ て い
         る け ど 、 起 動 し て 確 認 し て
         も 問 題 な い ？
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -340,8 +340,8 @@ fn snapshot_two_agents_same_window_ui() {
     ⓘ  Agents               — 
     ┃ ⠋ claude
         fix the bug
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -385,8 +385,8 @@ fn snapshot_two_windows_ui() {
     ⓘ  Agents               — 
     project-a
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -433,8 +433,8 @@ fn snapshot_multi_session_ui() {
     ⓘ  Agents               — 
     dotfiles
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -462,8 +462,8 @@ fn snapshot_wait_reason_ui() {
     ⓘ  Agents               — 
     ┃ ● claude
         permission required
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -491,14 +491,14 @@ fn snapshot_auto_rename_window_title_ui() {
     ⓘ  Agents               — 
     ┃ ○ claude
         Waiting for prompt…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
 
 #[test]
-fn snapshot_activity_log_ui() {
+fn snapshot_usage_tab_ui() {
     let pane = make_pane(AgentType::Claude, PaneStatus::Running);
     let mut state = make_state(vec![SessionInfo {
         session_name: "main".into(),
@@ -512,44 +512,25 @@ fn snapshot_activity_log_ui() {
     }]);
     state.repo_groups = vec![make_repo_group("project", vec![pane])];
     state.rebuild_row_targets();
-
-    state.activity.entries = vec![
-        ActivityEntry {
-            timestamp: "10:32".into(),
-            tool: "Edit".into(),
-            label: "src/main.rs".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:31".into(),
-            tool: "Bash".into(),
-            label: "cargo build".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:30".into(),
-            tool: "Read".into(),
-            label: "Cargo.toml".into(),
-        },
-    ];
+    attach_usage(&mut state, claude_usage());
 
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
-    │10:32                 Edit│
-    │  src/main.rs             │
-    │10:31                 Bash│
-    │  cargo build             │
-    │10:30                 Read│
-    │  Cargo.toml              │
+    ╭ Usage │ Git ─────────────╮
+    │Claude Code · max         │
+    │5h █████████░  2h 00m  91%│
+    │1w █████░░░░░   3d 0h  51%│
+    │Extra $22.24 / $20.00     │
     ╰──────────────────────────╯
     ");
 }
 
 #[test]
-fn snapshot_activity_log_long_label_ui() {
-    let pane = make_pane(AgentType::Claude, PaneStatus::Running);
+fn snapshot_usage_tab_opencode_ui() {
+    let pane = make_pane(AgentType::OpenCode, PaneStatus::Running);
     let mut state = make_state(vec![SessionInfo {
         session_name: "main".into(),
         windows: vec![WindowInfo {
@@ -562,22 +543,20 @@ fn snapshot_activity_log_long_label_ui() {
     }]);
     state.repo_groups = vec![make_repo_group("project", vec![pane])];
     state.rebuild_row_targets();
-
-    state.activity.entries = vec![ActivityEntry {
-        timestamp: "10:32".into(),
-        tool: "Read".into(),
-        label: "config/agents-tmux-rs/src/very-long-filename.rs".into(),
-    }];
+    attach_usage(&mut state, opencode_usage());
 
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
-    │10:32                 Read│
-    │  config/agents-tmux-rs/sr│
-    │  c/very-long-filename.rs │
+    ┃ ⠋ opencode
+    ╭ Usage │ Git ─────────────╮
+    │OpenCode                  │
+    │Using   commandcode       │
+    │Model   deepseek-v4.1-fl… │
+    │Session $15.22 · 1.2M tok │
+    │Today   $20.50            │
+    │No limits for commandcode │
     ╰──────────────────────────╯
     ");
 }
@@ -609,8 +588,8 @@ fn snapshot_prompt_wrapping_ui() {
         Please fix the
         authentication bug in
         the login flow that cau…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -638,8 +617,8 @@ fn snapshot_selected_unfocused_ui() {
     project
     ┃ ○ claude
         Waiting for prompt…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -667,8 +646,8 @@ fn snapshot_error_state_ui() {
     ⓘ  Agents               — 
     ┃ ◉ claude
         something broke
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -696,8 +675,8 @@ fn snapshot_narrow_width_ui() {
     ⓘ  Agents     — 
     ┃ ○ claude
         hello world
-    ╭ Activity │ Git ╮
-    │ No activity yet│
+    ╭ Usage │ Git ───╮
+    │ Loading usage… │
     ╰────────────────╯
     ");
 }
@@ -746,8 +725,8 @@ fn snapshot_worktree_branch_ui() {
     ┃ ⠋ claude
     ┃   + feature/sidebar
         fix bug
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -772,8 +751,8 @@ fn snapshot_worktree_long_branch_truncated_ui() {
     ⓘ  Agents               — 
     ┃   + feature/very-long-bra…
         Waiting for prompt…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -798,8 +777,8 @@ fn snapshot_long_branch_with_ports_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                           — 
     ┃   feature/sidebar/really…  :3000, 5173
-    ╭ Activity │ Git ──────────────────────╮
-    │            No activity yet           │
+    ╭ Usage │ Git ─────────────────────────╮
+    │            Loading usage…            │
     ╰──────────────────────────────────────╯
     ");
 }
@@ -827,8 +806,8 @@ fn snapshot_task_progress_partial_ui() {
     ⓘ  Agents               — 
         ✔◼◻ 1/3
         working
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -852,8 +831,8 @@ fn snapshot_task_progress_all_completed_ui() {
     ⓘ  Agents               — 
     ┃ ⠋ claude
         ✔✔ 2/2
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -878,8 +857,8 @@ fn snapshot_task_progress_all_pending_ui() {
     ⓘ  Agents               — 
     ┃ ⠋ claude
         ◻◻◻ 0/3
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -927,8 +906,8 @@ fn snapshot_all_elements_combined_ui() {
         └ Plan #2
         permission required
         fixing the bug
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -949,8 +928,8 @@ fn snapshot_response_japanese_ui() {
     ┃ ○ claude
       ▷ 修 正 が 完 了 し ま し た 。 テ ス ト
         も 全 て 通 っ て い ま す 。
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -987,8 +966,8 @@ fn snapshot_three_groups_middle_focused_ui() {
     repo-c
       ○ claude
         Waiting for prompt…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1007,8 +986,8 @@ fn snapshot_bypass_all_badge_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude !
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1025,8 +1004,8 @@ fn snapshot_full_auto_badge_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude auto
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1043,8 +1022,8 @@ fn snapshot_plan_badge_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude plan
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1061,8 +1040,8 @@ fn snapshot_accept_edits_badge_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude edit
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1091,8 +1070,8 @@ fn snapshot_response_with_branch_ui() {
     ┃ ○ claude
     ┃   feature/ui-v2
       ▷ Done. All tests are green.
-    ╭ Activity │ Git ────────────────╮
-    │         No activity yet        │
+    ╭ Usage │ Git ───────────────────╮
+    │         Loading usage…         │
     ╰────────────────────────────────╯
     ");
 }
@@ -1111,8 +1090,8 @@ fn snapshot_wait_reason_elicitation_ui() {
     ⓘ  Agents               — 
     ┃ ● claude
         waiting for selection
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1129,8 +1108,8 @@ fn snapshot_wait_reason_unknown_ui() {
     ⓘ  Agents               — 
     ┃ ● claude
         some_future_reason
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1149,8 +1128,8 @@ fn snapshot_wait_reason_permission_denied_ui() {
     ⓘ  Agents               — 
     ┃ ● claude
         permission denied
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1177,8 +1156,8 @@ fn snapshot_worktree_with_name_ui() {
     ⓘ  Agents               — 
     ┃ ⠋ claude
     ┃   + auth-wt: feat/auth
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1203,77 +1182,8 @@ fn snapshot_worktree_name_same_as_branch_ui() {
     ⓘ  Agents               — 
     ┃ ⠋ claude
     ┃   + feat/auth
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
-    ╰──────────────────────────╯
-    ");
-}
-
-// ─── Activity Log Tool Types ──────────────────────────────────────
-
-#[test]
-fn snapshot_activity_all_tool_types_ui() {
-    let pane = make_pane(AgentType::Claude, PaneStatus::Running);
-    let mut state = make_state_with_groups(vec![make_repo_group("project", vec![pane])]);
-
-    state.activity.entries = vec![
-        ActivityEntry {
-            timestamp: "10:07".into(),
-            tool: "Agent".into(),
-            label: "Explore codebase".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:06".into(),
-            tool: "Skill".into(),
-            label: "commit".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:05".into(),
-            tool: "ToolSearch".into(),
-            label: "select:Read".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:04".into(),
-            tool: "TaskCreate".into(),
-            label: "#1 Fix bug".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:03".into(),
-            tool: "WebFetch".into(),
-            label: "docs.rs/ratatui".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:02".into(),
-            tool: "Grep".into(),
-            label: "run_git".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:01".into(),
-            tool: "Write".into(),
-            label: "new_file.rs".into(),
-        },
-    ];
-
-    let output = render_to_string(&mut state, 28, 25);
-    insta::assert_snapshot!(output, @"
-    ⓘ  Agents               — 
-    project
-    ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
-    │10:07                Agent│
-    │  Explore codebase        │
-    │10:06                Skill│
-    │  commit                  │
-    │10:05           ToolSearch│
-    │  select:Read             │
-    │10:04           TaskCreate│
-    │  #1 Fix bug              │
-    │10:03             WebFetch│
-    │  docs.rs/ratatui         │
-    │10:02                 Grep│
-    │  run_git                 │
-    │10:01                Write│
-    │  new_file.rs             │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1284,22 +1194,20 @@ fn snapshot_activity_all_tool_types_ui() {
 fn snapshot_focus_activity_log_ui() {
     let pane = make_pane(AgentType::Claude, PaneStatus::Running);
     let mut state = make_state_with_groups(vec![make_repo_group("project", vec![pane])]);
-    state.focus_state.focus = Focus::ActivityLog;
+    state.focus_state.focus = Focus::BottomPanel;
     state.focus_state.sidebar_focused = true;
-    state.activity.entries = vec![ActivityEntry {
-        timestamp: "10:00".into(),
-        tool: "Read".into(),
-        label: "file.rs".into(),
-    }];
+    attach_usage(&mut state, claude_usage());
 
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ──────────╮
-    │10:00                 Read│
-    │  file.rs                 │
+    ╭ Usage │ Git ─────────────╮
+    │Claude Code · max         │
+    │5h █████████░  2h 00m  91%│
+    │1w █████░░░░░   3d 0h  51%│
+    │Extra $22.24 / $20.00     │
     ╰──────────────────────────╯
     ");
 }
@@ -1322,8 +1230,8 @@ fn right_border_narrow_width_with_badge() {
     ⓘ  Agents         — 
     ┃ ⠋ claude !    2h0m0s
         fix the issue
-    ╭ Activity │ Git ────╮
-    │   No activity yet  │
+    ╭ Usage │ Git ───────╮
+    │   Loading usage…   │
     ╰────────────────────╯
     ");
     // Structural invariant (width-agnostic): every line that starts with a
@@ -1370,96 +1278,96 @@ fn right_border_all_permission_modes_and_agents() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude          1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Claude / Auto ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude auto     1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Claude / DontAsk ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude dontAsk  1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Claude / Plan ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude plan     1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Claude / AcceptEdits ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude edit     1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Claude / BypassPermissions ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude !        1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Codex / Default ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ codex           1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Codex / Auto ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ codex auto      1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Codex / DontAsk ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ codex dontAsk   1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Codex / Plan ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ codex plan      1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Codex / AcceptEdits ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ codex edit      1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
 
     === Codex / BypassPermissions ===
     ⓘ  Agents               — 
     project
     ┃ ⠋ codex !         1h30m32s
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -1483,8 +1391,8 @@ fn snapshot_filter_bar_shows_counts() {
     ⓘ  Agents                 — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -1507,8 +1415,8 @@ fn snapshot_filter_running_hides_idle() {
     ⓘ  Agents                 — 
     project
     ┃ ⠋ claude
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -1531,8 +1439,8 @@ fn snapshot_filter_idle_hides_running() {
     ⓘ  Agents                 — 
       ○ codex
         Waiting for prompt…
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -1558,8 +1466,8 @@ fn snapshot_filter_hides_empty_groups() {
     ⓘ  Agents                 — 
     repo-a
     ┃ ⠋ claude
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -1584,8 +1492,8 @@ fn snapshot_filter_all_shows_everything() {
     ┃ ⠋ claude
       ○ codex
         Waiting for prompt…
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -1624,8 +1532,8 @@ fn snapshot_filter_bar_stays_fixed_on_scroll() {
     let output = render_to_string(&mut state, 30, 15);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                 — 
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -1669,8 +1577,8 @@ fn snapshot_filter_error_shows_agents() {
     ⓘ  Agents                 — 
     ┃ ◉ claude
         something broke
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -1694,8 +1602,8 @@ fn snapshot_filter_waiting_shows_only_waiting() {
     ⓘ  Agents                 — 
     ┃ ● claude
         permission required
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -1742,8 +1650,8 @@ fn snapshot_repo_header_shows_spawn_plus_button() {
     ┃ ○ claude
     ┃   main
         Waiting for prompt…
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -1765,8 +1673,8 @@ fn snapshot_spawn_modal_default_state() {
      │ MODE                         │
      │ default                      │
      ╰──────────────────────────────╯
-    ╭ Activity │ Git ────────────────╮
-    │         No activity yet        │
+    ╭ Usage │ Git ───────────────────╮
+    │         Loading usage…         │
     ╰────────────────────────────────╯
     ");
 }
@@ -1793,8 +1701,8 @@ fn snapshot_spawn_modal_anchors_directly_below_repo_header() {
     │ MODE                         │
     │ default                      │
     ╰──────────────────────────────╯
-    ╭ Activity │ Git ────────────────╮
-    │         No activity yet        │
+    ╭ Usage │ Git ───────────────────╮
+    │         Loading usage…         │
     ╰────────────────────────────────╯
     ");
 }
@@ -1823,8 +1731,8 @@ fn snapshot_spawn_modal_advance_fields_cycles_agent_and_mode() {
      │ MODE                         │
      │ bypassPermissions            │
      ╰──────────────────────────────╯
-    ╭ Activity │ Git ────────────────╮
-    │         No activity yet        │
+    ╭ Usage │ Git ───────────────────╮
+    │         Loading usage…         │
     ╰────────────────────────────────╯
     ");
 }
@@ -1849,8 +1757,8 @@ fn snapshot_spawn_modal_tail_fits_long_task_name() {
      │ MODE                         │
      │ default                      │
      ╰──────────────────────────────╯
-    ╭ Activity │ Git ────────────────╮
-    │         No activity yet        │
+    ╭ Usage │ Git ───────────────────╮
+    │         Loading usage…         │
     ╰────────────────────────────────╯
     ");
 }
@@ -1874,8 +1782,8 @@ fn snapshot_spawn_modal_narrow_width_still_fits() {
     │ MODE           │
     │ default        │
     ╰────────────────╯
-    ╭ Activity │ Git ╮
-    │ No activity yet│
+    ╭ Usage │ Git ───╮
+    │ Loading usage… │
     ╰────────────────╯
     ");
 }
@@ -1900,8 +1808,8 @@ fn snapshot_spawn_modal_compact_layout_in_short_agent_area() {
     ┃   │ claude                       │
         │ default                      │
         ╰──────────────────────────────╯
-    ╭ Activity │ Git ──────────────────────╮
-    │            No activity yet           │
+    ╭ Usage │ Git ─────────────────────────╮
+    │            Loading usage…            │
     ╰──────────────────────────────────────╯
     ");
 }
@@ -1921,8 +1829,8 @@ fn snapshot_spawn_modal_compact_layout_shows_inline_error() {
     ┃   │ default                      │
         │ not a folder: /home/u/proj   │
         ╰──────────────────────────────╯
-    ╭ Activity │ Git ──────────────────────╮
-    │            No activity yet           │
+    ╭ Usage │ Git ─────────────────────────╮
+    │            Loading usage…            │
     ╰──────────────────────────────────────╯
     ");
 }
@@ -1971,8 +1879,8 @@ fn snapshot_sidebar_spawned_pane_appends_trailing_remove_marker() {
       ○ claude
         + feat/x                 ×
         Waiting for prompt…
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -2107,8 +2015,8 @@ fn snapshot_sidebar_spawned_long_branch_truncates_and_keeps_x() {
       ○ claude
         + feature/really-l…×
         Waiting for prompt…
-    ╭ Activity │ Git ──────╮
-    │    No activity yet   │
+    ╭ Usage │ Git ─────────╮
+    │    Loading usage…    │
     ╰──────────────────────╯
     ");
     // The click target must still be registered even after
@@ -2149,8 +2057,8 @@ fn snapshot_sidebar_spawned_coexists_with_port_display() {
       ○ claude
         + feat/srv         :3000 ×
         Waiting for prompt…
-    ╭ Activity │ Git ────────────╮
-    │       No activity yet      │
+    ╭ Usage │ Git ───────────────╮
+    │       Loading usage…       │
     ╰────────────────────────────╯
     ");
 }
@@ -2176,8 +2084,8 @@ fn snapshot_remove_confirm_modal_shows_three_options() {
                │[c] close window only     │
                │[n] cancel                │
                ╰──────────────────────────╯
-    ╭ Activity │ Git ────────────────────────────────╮
-    │                 No activity yet                │
+    ╭ Usage │ Git ───────────────────────────────────╮
+    │                 Loading usage…                 │
     ╰────────────────────────────────────────────────╯
     ");
 }
@@ -2203,8 +2111,8 @@ fn snapshot_spawn_modal_shows_inline_error_when_task_empty() {
      │ default                      │
      │ not a folder: /home/u/proj   │
      ╰──────────────────────────────╯
-    ╭ Activity │ Git ────────────────╮
-    │         No activity yet        │
+    ╭ Usage │ Git ───────────────────╮
+    │         Loading usage…         │
     ╰────────────────────────────────╯
     ");
 }
@@ -2247,8 +2155,8 @@ fn snapshot_remove_confirm_modal_shows_inline_error() {
                │[n] cancel                │
                │git: worktree has uncommi…│
                ╰──────────────────────────╯
-    ╭ Activity │ Git ────────────────────────────────╮
-    │                 No activity yet                │
+    ╭ Usage │ Git ───────────────────────────────────╮
+    │                 Loading usage…                 │
     ╰────────────────────────────────────────────────╯
     ");
 }
@@ -2276,8 +2184,8 @@ fn snapshot_background_status_shows_bg_command_row() {
     ⓘ  Agents                   — 
     ┃ ⠁ claude
         $ npm run dev
-    ╭ Activity │ Git ──────────────╮
-    │        No activity yet       │
+    ╭ Usage │ Git ─────────────────╮
+    │        Loading usage…        │
     ╰──────────────────────────────╯
     ");
 }
@@ -2306,8 +2214,8 @@ fn snapshot_running_pane_still_shows_live_bg_command() {
     ⓘ  Agents                   — 
     ┃ ⠋ claude                   10s
         $ cargo watch
-    ╭ Activity │ Git ──────────────╮
-    │        No activity yet       │
+    ╭ Usage │ Git ─────────────────╮
+    │        Loading usage…        │
     ╰──────────────────────────────╯
     ");
 }
@@ -2335,8 +2243,8 @@ fn snapshot_background_long_command_truncates_with_ellipsis() {
     ⓘ  Agents               — 
     ┃ ⠁ claude
         $ cargo run --bin very-…
-    ╭ Activity │ Git ──────────╮
-    │      No activity yet     │
+    ╭ Usage │ Git ─────────────╮
+    │      Loading usage…      │
     ╰──────────────────────────╯
     ");
 }
@@ -2362,8 +2270,8 @@ fn snapshot_remove_confirm_modal_for_a_plain_folder_agent_offers_only_close() {
                │[y] close agent window    │
                │[n] cancel                │
                ╰──────────────────────────╯
-    ╭ Activity │ Git ────────────────────────────────╮
-    │                 No activity yet                │
+    ╭ Usage │ Git ───────────────────────────────────╮
+    │                 Loading usage…                 │
     ╰────────────────────────────────────────────────╯
     ");
 }

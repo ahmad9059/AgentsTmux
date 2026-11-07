@@ -3,9 +3,9 @@ use std::time::Instant;
 use crate::ui::colors::ColorTheme;
 use crate::ui::icons::StatusIcons;
 
-mod activity;
 mod fallback;
 mod filter;
+mod flash;
 mod focus;
 mod global;
 mod layout;
@@ -18,8 +18,8 @@ mod scroll;
 mod session;
 mod tab;
 mod timers;
+mod usage;
 
-pub use activity::ActivityState;
 pub use filter::{RepoFilter, StatusFilter};
 pub use focus::{Focus, FocusState};
 pub use global::GlobalState;
@@ -33,10 +33,11 @@ pub(crate) use refresh::{TaskProgressDecision, classify_task_progress};
 pub use scroll::{ScrollState, ScrollStates};
 pub use session::SessionNamesState;
 pub use timers::RefreshTimers;
+pub use usage::UsageState;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BottomTab {
-    Activity,
+    Usage,
     GitStatus,
 }
 
@@ -55,10 +56,10 @@ pub struct AppState {
     /// the UI layer; consumed by mouse/keyboard handlers before the
     /// next render.
     pub layout: FrameLayout,
-    pub activity: ActivityState,
+    pub usage: UsageState,
     pub tmux_pane: String,
-    /// Scroll offsets for the agents list and git tab. Activity tab
-    /// scroll lives in [`ActivityState::scroll`].
+    /// Scroll offsets for the agents list and git tab. The Usage tab's
+    /// scroll lives in [`UsageState::scroll`].
     pub scrolls: ScrollStates,
     pub theme: ColorTheme,
     pub icons: StatusIcons,
@@ -152,7 +153,7 @@ impl AppState {
             flash: None,
             spinner_frame: 0,
             layout: FrameLayout::default(),
-            activity: ActivityState::new(),
+            usage: UsageState::new(),
             tmux_pane,
             scrolls: ScrollStates::default(),
             theme: ColorTheme::default(),
@@ -160,7 +161,7 @@ impl AppState {
             persistent_agent_highlight: false,
             external_spawn_popup: false,
             exit_fallback: fallback::ExitFallback::default(),
-            bottom_tab: BottomTab::Activity,
+            bottom_tab: BottomTab::Usage,
             git: crate::git::GitData::default(),
             pane_states: PaneRuntimeMap::new(),
             timers: RefreshTimers::default(),
@@ -417,40 +418,6 @@ mod tests {
         let mut state = AppState::new("%99".into());
         state.refresh_now();
         assert!(state.now > 0);
-    }
-
-    #[test]
-    fn refresh_activity_log_reads_focused_pane() {
-        let mut state = AppState::new("%99".into());
-        let pane_id = "%201";
-        let log_path = crate::activity::log_file_path(pane_id);
-        fs::write(&log_path, "10:00|Read|old\n10:01|Edit|new\n").unwrap();
-        state.focus_state.focused_pane_id = Some(pane_id.into());
-        state.activity.max_entries = 50;
-
-        state.refresh_activity_log();
-
-        assert_eq!(state.activity.entries.len(), 2);
-        assert_eq!(state.activity.entries[0].tool, "Edit");
-        assert_eq!(state.activity.entries[0].label, "new");
-        assert_eq!(state.activity.entries[1].tool, "Read");
-
-        fs::remove_file(&log_path).ok();
-    }
-
-    #[test]
-    fn refresh_activity_log_clears_without_focus() {
-        let mut state = AppState::new("%99".into());
-        state.activity.entries = vec![crate::activity::ActivityEntry {
-            timestamp: "10:00".into(),
-            tool: "Read".into(),
-            label: "keep?".into(),
-        }];
-
-        state.focus_state.focused_pane_id = None;
-        state.refresh_activity_log();
-
-        assert!(state.activity.entries.is_empty());
     }
 
     #[test]
@@ -965,25 +932,25 @@ mod tests {
     #[test]
     fn next_bottom_tab_toggles() {
         let mut state = AppState::new("%99".into());
-        assert_eq!(state.bottom_tab, BottomTab::Activity);
+        assert_eq!(state.bottom_tab, BottomTab::Usage);
         state.next_bottom_tab();
         assert_eq!(state.bottom_tab, BottomTab::GitStatus);
         state.next_bottom_tab();
-        assert_eq!(state.bottom_tab, BottomTab::Activity);
+        assert_eq!(state.bottom_tab, BottomTab::Usage);
     }
 
     #[test]
-    fn scroll_bottom_dispatches_to_activity() {
+    fn scroll_bottom_dispatches_to_usage() {
         let mut state = AppState::new("%99".into());
-        state.bottom_tab = BottomTab::Activity;
-        state.activity.scroll = ScrollState {
+        state.bottom_tab = BottomTab::Usage;
+        state.usage.scroll = ScrollState {
             offset: 0,
             total_lines: 10,
             visible_height: 3,
         };
 
         state.scroll_bottom(2);
-        assert_eq!(state.activity.scroll.offset, 2);
+        assert_eq!(state.usage.scroll.offset, 2);
         assert_eq!(state.scrolls.git.offset, 0);
     }
 
@@ -999,16 +966,16 @@ mod tests {
 
         state.scroll_bottom(2);
         assert_eq!(state.scrolls.git.offset, 2);
-        assert_eq!(state.activity.scroll.offset, 0);
+        assert_eq!(state.usage.scroll.offset, 0);
     }
 
     // ─── handle_mouse_scroll tests ────────────────────────────────────
 
     #[test]
-    fn mouse_scroll_in_bottom_panel_scrolls_activity() {
+    fn mouse_scroll_in_bottom_panel_scrolls_usage() {
         let mut state = AppState::new("%99".into());
-        state.bottom_tab = BottomTab::Activity;
-        state.activity.scroll = ScrollState {
+        state.bottom_tab = BottomTab::Usage;
+        state.usage.scroll = ScrollState {
             offset: 0,
             total_lines: 30,
             visible_height: 10,
@@ -1016,7 +983,7 @@ mod tests {
         // term_height=50, bottom_panel=20 → bottom starts at row 30
         // mouse at row 35 → in bottom panel
         state.handle_mouse_scroll(35, 50, 20, 3);
-        assert_eq!(state.activity.scroll.offset, 3);
+        assert_eq!(state.usage.scroll.offset, 3);
         assert_eq!(state.scrolls.panes.offset, 0);
     }
 
@@ -1032,7 +999,7 @@ mod tests {
         // mouse at row 10 → in agents panel
         state.handle_mouse_scroll(10, 50, 20, 3);
         assert_eq!(state.scrolls.panes.offset, 3);
-        assert_eq!(state.activity.scroll.offset, 0);
+        assert_eq!(state.usage.scroll.offset, 0);
     }
 
     #[test]
@@ -1074,7 +1041,7 @@ mod tests {
         // row 29, just above bottom_start=30
         state.handle_mouse_scroll(29, 50, 20, 3);
         assert_eq!(state.scrolls.panes.offset, 3);
-        assert_eq!(state.activity.scroll.offset, 0);
+        assert_eq!(state.usage.scroll.offset, 0);
     }
 
     // ─── move_pane_selection edge cases ─────────────────────────────

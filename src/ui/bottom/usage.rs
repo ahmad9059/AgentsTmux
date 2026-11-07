@@ -1,0 +1,339 @@
+use ratatui::{
+    Frame,
+    layout::Rect,
+    style::Style,
+    text::{Line, Span},
+    widgets::Paragraph,
+};
+
+use crate::state::AppState;
+use crate::ui::text::display_width;
+use crate::usage::{UsageSnapshot, format_countdown};
+
+/// Number of cells in a usage meter: `████░░░░`.
+const METER_CELLS: usize = 10;
+/// Fill characters, from empty to full. The last step keeps a sliver so a
+/// non-zero usage never renders as completely empty.
+const METER_EMPTY: char = '░';
+const METER_FULL: char = '█';
+
+pub(super) fn draw_usage_content(frame: &mut Frame, state: &mut AppState, inner: Rect) {
+    let theme = &state.theme;
+    let Some(key) = crate::state::UsageState::target(state)
+        .map(|target| target.key)
+        .or_else(|| state.usage.requested_key.clone())
+    else {
+        super::render_centered(frame, inner, "No agent selected", theme.text_muted);
+        return;
+    };
+
+    // A missing snapshot only means the background fetch has not returned
+    // yet: failures arrive as a snapshot carrying a message.
+    let Some(snapshot) = state.usage.current(&key).cloned() else {
+        super::render_centered(frame, inner, "Loading usage…", theme.text_muted);
+        return;
+    };
+
+    let now = state.now;
+    let lines = build_lines(&snapshot, now, inner.width as usize, theme);
+    state.usage.scroll.total_lines = lines.len();
+    state.usage.scroll.visible_height = inner.height as usize;
+    state.usage.scroll.scroll(0);
+
+    let paragraph = Paragraph::new(lines).scroll((state.usage.scroll.offset as u16, 0));
+    frame.render_widget(paragraph, inner);
+}
+
+fn build_lines<'a>(
+    snapshot: &UsageSnapshot,
+    now: u64,
+    width: usize,
+    theme: &crate::ui::colors::ColorTheme,
+) -> Vec<Line<'a>> {
+    let mut lines: Vec<Line<'a>> = Vec::new();
+    let mut heading = snapshot.title.clone();
+    if let Some(plan) = &snapshot.plan {
+        heading.push_str(&format!(" · {plan}"));
+    }
+    lines.push(Line::from(Span::styled(
+        heading,
+        Style::default().fg(theme.session_header),
+    )));
+    lines.push(Line::from(""));
+
+    for window in &snapshot.windows {
+        lines.push(window_line(
+            &window.label,
+            window.percent,
+            window.resets_at,
+            now,
+            width,
+            theme,
+        ));
+    }
+
+    for (label, value) in &snapshot.local {
+        lines.push(kv_line(label, value, width, theme));
+    }
+
+    for extra in &snapshot.extras {
+        for chunk in crate::ui::text::wrap_text_char(extra, width, 2) {
+            lines.push(Line::from(Span::styled(
+                chunk,
+                Style::default().fg(theme.text_muted),
+            )));
+        }
+    }
+
+    // The note goes last: it explains why the numbers above are all there is.
+    if let Some(message) = &snapshot.message {
+        if !snapshot.windows.is_empty() || !snapshot.local.is_empty() {
+            lines.push(Line::from(""));
+        }
+        for chunk in crate::ui::text::wrap_text_char(message, width, 3) {
+            lines.push(Line::from(Span::styled(
+                chunk,
+                Style::default().fg(theme.text_inactive),
+            )));
+        }
+    }
+
+    lines
+}
+
+fn window_line<'a>(
+    label: &str,
+    percent: f32,
+    resets_at: Option<u64>,
+    now: u64,
+    width: usize,
+    theme: &crate::ui::colors::ColorTheme,
+) -> Line<'a> {
+    let clamped = percent.clamp(0.0, 100.0);
+    // Bars are cheaper to scan than the number, so they lead; the number
+    // stays right-aligned next to the percent sign for precision.
+    let percent_text = format!("{:.0}%", clamped);
+    let reset_text = resets_at
+        .map(|at| format_countdown(at, now))
+        .unwrap_or_default();
+    let left_width = display_width(label) + 1 + METER_CELLS;
+
+    // Right-align the countdown and percentage, keeping at least one space
+    // between them and the meter.
+    let tail = if reset_text.is_empty() {
+        percent_text.clone()
+    } else {
+        format!("{reset_text}  {percent_text}")
+    };
+    let gap = width
+        .saturating_sub(left_width + display_width(&tail))
+        .max(1);
+
+    let mut spans = vec![
+        Span::styled(format!("{label} "), Style::default().fg(theme.text_muted)),
+        Span::styled(
+            meter(clamped, METER_CELLS),
+            Style::default().fg(severity_color(clamped, theme)),
+        ),
+        Span::raw(" ".repeat(gap)),
+    ];
+    if !reset_text.is_empty() {
+        spans.push(Span::styled(
+            reset_text,
+            Style::default().fg(theme.text_inactive),
+        ));
+        spans.push(Span::raw("  "));
+    }
+    spans.push(Span::styled(
+        percent_text,
+        Style::default().fg(severity_color(clamped, theme)),
+    ));
+    Line::from(spans)
+}
+
+fn kv_line<'a>(
+    label: &str,
+    value: &str,
+    width: usize,
+    theme: &crate::ui::colors::ColorTheme,
+) -> Line<'a> {
+    let label_width = 8.min(width);
+    let value_width = width.saturating_sub(label_width + 1).max(1);
+    let value = crate::ui::text::truncate_to_width(value, value_width);
+    Line::from(vec![
+        Span::styled(
+            format!("{label:<label_width$}"),
+            Style::default().fg(theme.text_inactive),
+        ),
+        Span::styled(value, Style::default().fg(theme.text_active)),
+    ])
+}
+
+/// `█`-style meter. A percentage below 100 still shows the lowest non-zero
+/// step so "1%" is visible.
+fn meter(percent: f32, cells: usize) -> String {
+    if cells == 0 {
+        return String::new();
+    }
+    let filled = if percent <= 0.0 {
+        0
+    } else {
+        ((percent / 100.0) * cells as f32).round().max(1.0) as usize
+    }
+    .min(cells);
+    let mut out = String::with_capacity(cells * 3);
+    for index in 0..cells {
+        out.push(if index < filled {
+            METER_FULL
+        } else {
+            METER_EMPTY
+        });
+    }
+    out
+}
+
+/// Green while comfortable, amber as the window fills, red when it is
+/// almost exhausted. Matches the status colours used in the agent list.
+fn severity_color(percent: f32, theme: &crate::ui::colors::ColorTheme) -> ratatui::style::Color {
+    if percent >= 90.0 {
+        theme.status_error
+    } else if percent >= 70.0 {
+        theme.status_waiting
+    } else {
+        theme.status_idle
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::colors::ColorTheme;
+
+    fn snapshot() -> UsageSnapshot {
+        UsageSnapshot {
+            key: "%1|Claude|".into(),
+            title: "Claude Code".into(),
+            plan: Some("max".into()),
+            windows: vec![
+                crate::usage::UsageWindow {
+                    label: "5h".into(),
+                    percent: 91.0,
+                    resets_at: Some(1_794_060_599),
+                },
+                crate::usage::UsageWindow {
+                    label: "1w".into(),
+                    percent: 51.0,
+                    resets_at: None,
+                },
+            ],
+            ..UsageSnapshot::default()
+        }
+    }
+
+    fn line_text(line: &Line<'_>) -> String {
+        line.spans
+            .iter()
+            .map(|span| span.content.as_ref())
+            .collect()
+    }
+
+    #[test]
+    fn meter_fills_proportionally() {
+        assert_eq!(meter(0.0, 10), "░░░░░░░░░░");
+        assert_eq!(meter(50.0, 10), "█████░░░░░");
+        assert_eq!(meter(100.0, 10), "██████████");
+    }
+
+    #[test]
+    fn meter_shows_a_sliver_for_small_usage() {
+        assert_eq!(meter(1.0, 10), "█░░░░░░░░░");
+    }
+
+    #[test]
+    fn meter_handles_zero_cells() {
+        assert_eq!(meter(50.0, 0), "");
+    }
+
+    #[test]
+    fn lines_start_with_provider_and_plan() {
+        let theme = ColorTheme::default();
+        let lines = build_lines(&snapshot(), 1_794_000_000, 28, &theme);
+        assert_eq!(line_text(&lines[0]), "Claude Code · max");
+        assert_eq!(line_text(&lines[1]), "");
+    }
+
+    #[test]
+    fn window_row_has_label_meter_countdown_and_percent() {
+        let theme = ColorTheme::default();
+        let lines = build_lines(&snapshot(), 1_794_000_000, 28, &theme);
+        let row = line_text(&lines[2]);
+        assert!(row.starts_with("5h █████████░"), "row was {row:?}");
+        assert!(row.ends_with(" 91%"), "row was {row:?}");
+        assert!(row.contains("16h 49m"), "row was {row:?}");
+        assert_eq!(display_width(&row), 28);
+    }
+
+    #[test]
+    fn window_without_reset_omits_countdown() {
+        let theme = ColorTheme::default();
+        let lines = build_lines(&snapshot(), 1_794_000_000, 28, &theme);
+        let row = line_text(&lines[3]);
+        assert!(row.starts_with("1w █████░░░░░"), "row was {row:?}");
+        assert!(row.ends_with(" 51%"), "row was {row:?}");
+    }
+
+    #[test]
+    fn message_is_shown_when_there_are_no_windows() {
+        let theme = ColorTheme::default();
+        let lines = build_lines(
+            &UsageSnapshot {
+                key: "k".into(),
+                title: "OpenCode".into(),
+                message: Some("No usage limits reported by commandcode".into()),
+                ..UsageSnapshot::default()
+            },
+            0,
+            28,
+            &theme,
+        );
+        let joined: Vec<String> = lines.iter().map(line_text).collect();
+        assert!(joined.iter().any(|l| l.contains("No usage limits")));
+    }
+
+    #[test]
+    fn local_lines_render_as_key_value_rows() {
+        let theme = ColorTheme::default();
+        let lines = build_lines(
+            &UsageSnapshot {
+                key: "k".into(),
+                title: "OpenCode".into(),
+                local: vec![
+                    ("Using".into(), "commandcode/deepseek".into()),
+                    ("Session".into(), "$15.22 · 1.2M tok".into()),
+                ],
+                ..UsageSnapshot::default()
+            },
+            0,
+            28,
+            &theme,
+        );
+        let joined: Vec<String> = lines.iter().map(line_text).collect();
+        assert_eq!(joined[0], "OpenCode");
+        assert_eq!(joined[1], "");
+        assert!(joined[2].starts_with("Using   commandcode"), "{joined:?}");
+        assert!(joined[3].starts_with("Session $15.22"), "{joined:?}");
+    }
+
+    #[test]
+    fn severity_picks_error_amber_green() {
+        let theme = ColorTheme::default();
+        assert_eq!(severity_color(95.0, &theme), theme.status_error);
+        assert_eq!(severity_color(75.0, &theme), theme.status_waiting);
+        assert_eq!(severity_color(10.0, &theme), theme.status_idle);
+    }
+
+    #[test]
+    fn token_formatting_is_shared_with_the_usage_module() {
+        assert_eq!(crate::usage::format_tokens(2_000), "2k tok");
+    }
+}

@@ -1,7 +1,6 @@
 #[allow(dead_code, unused_imports)]
 mod test_helpers;
 
-use agents_tmux::activity::ActivityEntry;
 use agents_tmux::group::{PaneGitInfo, RepoGroup};
 use agents_tmux::state::{
     AppState, BottomTab, Focus, GlobalState, PopupState, RepoFilter, RowTarget, StatusFilter,
@@ -44,33 +43,16 @@ fn test_move_pane_selection_empty() {
 }
 
 #[test]
-fn test_scroll_activity_bounds() {
+fn test_scroll_usage_bounds() {
     let mut state = make_state(vec![]);
-    state.activity.entries = vec![
-        ActivityEntry {
-            timestamp: "10:00".into(),
-            tool: "Read".into(),
-            label: "a".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:01".into(),
-            tool: "Edit".into(),
-            label: "b".into(),
-        },
-        ActivityEntry {
-            timestamp: "10:02".into(),
-            tool: "Bash".into(),
-            label: "c".into(),
-        },
-    ];
-    state.activity.scroll.total_lines = 6;
-    state.activity.scroll.visible_height = 4;
-    state.activity.scroll.scroll(1);
-    assert_eq!(state.activity.scroll.offset, 1);
-    state.activity.scroll.scroll(5);
-    assert_eq!(state.activity.scroll.offset, 2); // clamped to 6-4=2
-    state.activity.scroll.scroll(-10);
-    assert_eq!(state.activity.scroll.offset, 0);
+    state.usage.scroll.total_lines = 6;
+    state.usage.scroll.visible_height = 4;
+    state.usage.scroll.scroll(1);
+    assert_eq!(state.usage.scroll.offset, 1);
+    state.usage.scroll.scroll(5);
+    assert_eq!(state.usage.scroll.offset, 2); // clamped to 6-4=2
+    state.usage.scroll.scroll(-10);
+    assert_eq!(state.usage.scroll.offset, 0);
 }
 
 // ─── line_to_row Mapping Tests ─────────────────────────────────────
@@ -375,13 +357,13 @@ fn test_state_new_defaults() {
     assert_eq!(state.spinner_frame, 0);
     assert_eq!(state.global.selected_pane_row, 0);
     assert!(state.layout.pane_row_targets.is_empty());
-    assert!(state.activity.entries.is_empty());
-    assert_eq!(state.activity.scroll.offset, 0);
-    assert_eq!(state.activity.max_entries, 50);
+    assert!(state.usage.snapshot.is_none());
+    assert_eq!(state.usage.scroll.offset, 0);
+    assert!(state.usage.requested_key.is_none());
     assert_eq!(state.scrolls.panes.offset, 0);
     assert_eq!(state.scrolls.panes.total_lines, 0);
     assert_eq!(state.scrolls.panes.visible_height, 0);
-    assert_eq!(state.bottom_tab, BottomTab::Activity);
+    assert_eq!(state.bottom_tab, BottomTab::Usage);
     assert!(state.git.branch.is_empty());
     assert_eq!(state.scrolls.git.offset, 0);
     assert!(state.git.pr_number.is_none());
@@ -445,20 +427,15 @@ fn test_scroll_bottom_dispatches_to_git() {
 }
 
 #[test]
-fn test_scroll_bottom_dispatches_to_activity() {
+fn test_scroll_bottom_dispatches_to_usage() {
     let mut state = make_state(vec![]);
-    state.bottom_tab = BottomTab::Activity;
-    state.activity.entries = vec![ActivityEntry {
-        timestamp: "10:00".into(),
-        tool: "Read".into(),
-        label: "a".into(),
-    }];
-    state.activity.scroll.total_lines = 10;
-    state.activity.scroll.visible_height = 3;
-    state.activity.scroll.offset = 0;
+    state.bottom_tab = BottomTab::Usage;
+    state.usage.scroll.total_lines = 10;
+    state.usage.scroll.visible_height = 3;
+    state.usage.scroll.offset = 0;
 
     state.scroll_bottom(2);
-    assert_eq!(state.activity.scroll.offset, 2);
+    assert_eq!(state.usage.scroll.offset, 2);
 }
 
 // ─── State: next_bottom_tab cycle Tests ─────────────────────────────
@@ -466,23 +443,23 @@ fn test_scroll_bottom_dispatches_to_activity() {
 #[test]
 fn test_next_bottom_tab_full_cycle() {
     let mut state = make_state(vec![]);
-    assert_eq!(state.bottom_tab, BottomTab::Activity);
+    assert_eq!(state.bottom_tab, BottomTab::Usage);
     state.next_bottom_tab();
     assert_eq!(state.bottom_tab, BottomTab::GitStatus);
     state.next_bottom_tab();
-    assert_eq!(state.bottom_tab, BottomTab::Activity);
+    assert_eq!(state.bottom_tab, BottomTab::Usage);
 }
 
 // ─── State: scroll_activity empty Tests ─────────────────────────────
 
 #[test]
-fn test_scroll_activity_empty_is_noop() {
+fn test_scroll_usage_empty_is_noop() {
     let mut state = make_state(vec![]);
-    state.activity.scroll.offset = 0;
-    state.activity.scroll.scroll(5);
+    state.usage.scroll.offset = 0;
+    state.usage.scroll.scroll(5);
     assert_eq!(
-        state.activity.scroll.offset, 0,
-        "scrolling empty activity should be no-op"
+        state.usage.scroll.offset, 0,
+        "scrolling empty usage should be no-op"
     );
 }
 
@@ -491,13 +468,13 @@ fn test_scroll_activity_empty_is_noop() {
 #[test]
 fn test_git_tab_active_after_tab_switch() {
     let mut state = make_state(vec![]);
-    assert_eq!(state.bottom_tab, BottomTab::Activity);
+    assert_eq!(state.bottom_tab, BottomTab::Usage);
 
     state.next_bottom_tab();
     assert_eq!(state.bottom_tab, BottomTab::GitStatus);
 
     state.next_bottom_tab();
-    assert_eq!(state.bottom_tab, BottomTab::Activity);
+    assert_eq!(state.bottom_tab, BottomTab::Usage);
 }
 
 // ─── State: global sync → rebuild consistency Tests ─────────────

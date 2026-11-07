@@ -167,3 +167,64 @@ pub fn assert_right_border_intact(output: &str) {
         }
     }
 }
+
+// ─── Usage tab fixtures ─────────────────────────────────────────────
+
+/// Key `UsageState::target` derives for the default test pane (`%1`, Claude,
+/// no session id).
+pub const USAGE_KEY: &str = "%1|Claude|";
+
+/// A Claude snapshot with a nearly exhausted session window and a healthy
+/// weekly one, used by the Usage tab snapshots.
+pub fn claude_usage() -> agents_tmux::usage::UsageSnapshot {
+    agents_tmux::usage::UsageSnapshot {
+        key: USAGE_KEY.into(),
+        title: "Claude Code".into(),
+        plan: Some("max".into()),
+        windows: vec![
+            agents_tmux::usage::UsageWindow {
+                label: "5h".into(),
+                percent: 91.0,
+                resets_at: Some(FIXED_NOW + 2 * 3600),
+            },
+            agents_tmux::usage::UsageWindow {
+                label: "1w".into(),
+                percent: 51.0,
+                resets_at: Some(FIXED_NOW + 3 * 86_400),
+            },
+        ],
+        extras: vec!["Extra $22.24 / $20.00".into()],
+        fetched_at: FIXED_NOW,
+        ..agents_tmux::usage::UsageSnapshot::default()
+    }
+}
+
+/// An OpenCode snapshot: local session spend plus the provider fallback line.
+pub fn opencode_usage() -> agents_tmux::usage::UsageSnapshot {
+    agents_tmux::usage::UsageSnapshot {
+        key: USAGE_KEY.into(),
+        title: "OpenCode".into(),
+        local: vec![
+            ("Using".into(), "commandcode".into()),
+            ("Model".into(), "deepseek-v4.1-flash".into()),
+            ("Session".into(), "$15.22 · 1.2M tok".into()),
+            ("Today".into(), "$20.50".into()),
+        ],
+        message: Some("No limits for commandcode".into()),
+        fetched_at: FIXED_NOW,
+        ..agents_tmux::usage::UsageSnapshot::default()
+    }
+}
+
+/// Install a snapshot and mark it as the requested key so the renderer
+/// treats it as the active agent's data.
+pub fn attach_usage(state: &mut AppState, mut snapshot: agents_tmux::usage::UsageSnapshot) {
+    // Bind the fixture to whichever agent the state currently focuses so
+    // `UsageState::current` accepts it.
+    let key = agents_tmux::state::UsageState::target(state)
+        .map(|target| target.key)
+        .unwrap_or_default();
+    snapshot.key = key.clone();
+    state.usage.requested_key = Some(key);
+    state.usage.snapshot = Some(snapshot);
+}

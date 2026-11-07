@@ -7,7 +7,8 @@ One tmux window for your coding agents. Keep a persistent sidebar on the left, s
 - **One Agents tab:** new agents use a detached holding session instead of adding tabs to your main session. Selecting an agent swaps its live pane into view; its process, conversation, scrollback, and worktree stay intact.
 - **Stable ordering:** folders and the agents in them stay in creation order. A new folder or agent appears at the bottom instead of jumping around during swaps.
 - **Reliable selection:** the visible agent stays highlighted while you type. Keyboard navigation has its own cursor, tracked by pane identity rather than an unstable row number.
-- **Compact sidebar:** hide prompt/reply previews and the idle placeholder; retain status, branch, task progress, and activity.
+- **Live usage panel:** the bottom panel shows the focused agent's own limits — Claude Code's 5-hour and weekly windows, Codex's primary and weekly windows with plan and credits — refreshed every 10 seconds and immediately when you switch agents. OpenCode and Pi are harnesses rather than subscriptions, so they report local session spend and reuse the subscription windows of the provider they are running on. When there is nothing to meter the panel says so instead of showing stale numbers.
+- **Compact sidebar:** hide prompt/reply previews and the idle placeholder; retain status, branch, and task progress.
 - **Useful notifications:** short, single-line completion, question, permission, and error alerts. Session selection does not replay old completions. On Hyprland, alerts are suppressed when the source tmux window is visible on an active workspace.
 - **Live status indicators:** a yellow braille spinner while an agent works, a blue orbiting dot for background work, a blinking orange dot when it needs you, a green ring when it is ready, and a red dot on error. Every icon and color can be overridden.
 - **Sound effects:** a soft chime when an agent finishes and a double ping when it asks a question, needs permission, or fails. Played only when you are not looking at that agent, like the desktop alerts.
@@ -76,6 +77,7 @@ For custom plugin locations, set `AGENTSTMUX_HOOK` to the absolute path of `hook
 - Folders and agents are listed in creation order: a new folder goes to the bottom of the sidebar, and a new agent goes to the bottom of its folder.
 - Use the project **+** button to start an agent. It opens a form in a popup centered over the window (Tab or ↑/↓ to move, ←/→ to change agent and mode, Esc to cancel). The folder field is prefilled with the current folder; edit it (or press **Ctrl+U** to clear it) to open the agent elsewhere. `~` and relative paths work, and the folder must already exist.
 - `agents-tmux spawn [folder]` does the same from a shell.
+- The bottom panel has two tabs, **Usage** and **Git**. Press **Shift+Tab** to switch, or click a tab name. Usage always follows the agent in view.
 - When the agent in view exits (`/exit`, Ctrl+C) or is closed, the window switches to another agent instead of leaving you at a shell: first one in the same folder (the one above it, else below), otherwise the top agent of the nearest folder above (else below). The leftover shell of an agent started from the sidebar is closed.
 - Use an agent's **×** button for removal options. Removing an agent does not close the shared host window.
 

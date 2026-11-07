@@ -1,5 +1,5 @@
-mod activity;
 mod git;
+mod usage;
 
 use ratatui::{
     Frame,
@@ -27,7 +27,7 @@ fn render_centered(frame: &mut Frame, area: Rect, text: &str, color: Color) {
 
 pub fn draw_bottom(frame: &mut Frame, state: &mut AppState, area: Rect) {
     let theme = &state.theme;
-    let border_color = if state.focus_state.focus == Focus::ActivityLog {
+    let border_color = if state.focus_state.focus == Focus::BottomPanel {
         theme.accent
     } else {
         theme.border_inactive
@@ -71,14 +71,14 @@ pub fn draw_bottom(frame: &mut Frame, state: &mut AppState, area: Rect) {
     frame.render_widget(Paragraph::new(bottom_line), bottom_rect);
 
     match state.bottom_tab {
-        BottomTab::Activity => activity::draw_activity_content(frame, state, inner),
+        BottomTab::Usage => usage::draw_usage_content(frame, state, inner),
         BottomTab::GitStatus => git::draw_git_content(frame, state, inner),
     }
 }
 
 fn build_tab_title(state: &AppState) -> Line<'static> {
     let theme = &state.theme;
-    let activity_style = if state.bottom_tab == BottomTab::Activity {
+    let usage_style = if state.bottom_tab == BottomTab::Usage {
         Style::default().fg(theme.accent)
     } else {
         Style::default().fg(theme.text_muted)
@@ -93,7 +93,7 @@ fn build_tab_title(state: &AppState) -> Line<'static> {
     let sep_style = Style::default().fg(theme.border_inactive);
 
     Line::from(vec![
-        Span::styled("Activity", activity_style),
+        Span::styled("Usage", usage_style),
         Span::styled(" \u{2502} ", sep_style),
         Span::styled("Git", git_style),
     ])

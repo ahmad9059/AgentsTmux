@@ -97,7 +97,7 @@ pub(super) fn handle_key_event(
     let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
     match key.code {
         KeyCode::Esc => {
-            if state.focus_state.focus == Focus::ActivityLog
+            if state.focus_state.focus == Focus::BottomPanel
                 || state.focus_state.focus == Focus::Filter
             {
                 state.focus_state.focus = Focus::Panes;
@@ -159,10 +159,10 @@ fn pane_nav_down(state: &mut AppState) {
             if state.move_pane_selection(1) {
                 state.global.queue_cursor_save();
             } else {
-                state.focus_state.focus = Focus::ActivityLog;
+                state.focus_state.focus = Focus::BottomPanel;
             }
         }
-        Focus::ActivityLog => state.scroll_bottom(1),
+        Focus::BottomPanel => state.scroll_bottom(1),
     }
 }
 
@@ -174,9 +174,9 @@ fn pane_nav_up(state: &mut AppState) {
                 state.global.queue_cursor_save();
             }
         }
-        Focus::ActivityLog => {
+        Focus::BottomPanel => {
             let at_top = match state.bottom_tab {
-                BottomTab::Activity => state.activity.scroll.offset == 0,
+                BottomTab::Usage => state.usage.scroll.offset == 0,
                 BottomTab::GitStatus => state.scrolls.git.offset == 0,
             };
             if at_top {
