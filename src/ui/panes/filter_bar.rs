@@ -7,8 +7,8 @@ use crate::state::{AppState, RepoFilter};
 
 use crate::ui::text::{display_width, truncate_to_width};
 
-/// Nerd Font caret-down shown next to the repo filter (U+F0D7).
-const REPO_ICON: &str = "\u{f0d7}";
+/// Nerd Font glyph shown next to the repo filter (U+EF81).
+const REPO_ICON: &str = "\u{ef81}";
 
 /// Heading shown at the top of the sidebar: a Nerd Font robot (U+F544) and
 /// the name.
@@ -92,7 +92,7 @@ mod tests {
         });
 
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
     }
 
     #[test]
@@ -120,7 +120,7 @@ mod tests {
     fn snapshot_secondary_header_without_notices_info() {
         let state = AppState::new(String::new());
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @" Agents                   — ");
+        insta::assert_snapshot!(text, @" Agents                   — ");
     }
 
     #[test]
@@ -131,7 +131,7 @@ mod tests {
             latest_version: "0.2.7".into(),
         });
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
     }
 
     #[test]
@@ -142,7 +142,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
     }
 
     // ─── secondary header tests ───────────────────────────────
@@ -191,7 +191,7 @@ mod tests {
 
         let (line, notices_col, repo_col) = render_secondary_header(&state, 28);
         let text = line_text(&line);
-        insta::assert_snapshot!(text, @"ⓘ  Agents               — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents               — ");
         // Click-target columns are layout state, not visible characters,
         // so they stay as direct equality checks alongside the snapshot.
         assert_eq!(notices_col, Some(0));
