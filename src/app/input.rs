@@ -1,5 +1,5 @@
 use std::io;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEventKind};
 use ratatui::{Terminal, backend::CrosstermBackend};
@@ -28,14 +28,9 @@ pub(super) fn handle_event(
                     let bottom_start = term_height.saturating_sub(bottom_h);
                     if mouse.row < bottom_start {
                         state.handle_mouse_click(mouse.row, mouse.column);
-                    } else if mouse.row == bottom_start {
-                        state.handle_bottom_tab_click(mouse.column);
-                        // Keep the background git poller in sync immediately — the
-                        // keyboard `BackTab` path does the same update. Without this,
-                        // clicking into Git Status leaves polling disabled until the
-                        // next refresh tick and the tab renders stale data.
-                        git_tab_active
-                            .store(state.bottom_tab == BottomTab::GitStatus, Ordering::Relaxed);
+                    } else {
+                        state.bottom_tab = BottomTab::Usage;
+                        state.focus_state.focus = Focus::BottomPanel;
                     }
                 }
                 MouseEventKind::ScrollDown => {
@@ -59,7 +54,7 @@ pub(super) fn handle_event(
 pub(super) fn handle_key_event(
     key: KeyEvent,
     state: &mut AppState,
-    git_tab_active: &AtomicBool,
+    _git_tab_active: &AtomicBool,
 ) -> bool {
     if state.is_notices_popup_open() {
         if key.code == KeyCode::Esc {
@@ -142,8 +137,7 @@ pub(super) fn handle_key_event(
             }
         }
         KeyCode::BackTab => {
-            state.next_bottom_tab();
-            git_tab_active.store(state.bottom_tab == BottomTab::GitStatus, Ordering::Relaxed);
+            state.bottom_tab = BottomTab::Usage;
         }
         _ => {}
     }
@@ -175,10 +169,7 @@ fn pane_nav_up(state: &mut AppState) {
             }
         }
         Focus::BottomPanel => {
-            let at_top = match state.bottom_tab {
-                BottomTab::Usage => state.usage.scroll.offset == 0,
-                BottomTab::GitStatus => state.scrolls.git.offset == 0,
-            };
+            let at_top = state.usage.scroll.offset == 0;
             if at_top {
                 state.focus_state.focus = Focus::Panes;
             } else {

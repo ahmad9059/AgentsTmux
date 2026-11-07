@@ -4,9 +4,9 @@ use crossterm::{cursor::MoveTo, execute};
 use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::clipboard;
-use crate::git::{self, GitData};
+#[cfg(test)]
+use crate::git::GitData;
 use crate::state::{AppState, HyperlinkOverlay};
-use crate::tmux;
 use crate::ui;
 
 pub(super) fn render_frame(
@@ -39,15 +39,7 @@ pub(super) fn render_frame(
     Ok(())
 }
 
-pub(super) fn refresh_git_for_focused_pane(state: &mut AppState) {
-    refresh_git_for_focused_pane_with(
-        state.focus_state.focused_pane_id.clone(),
-        tmux::get_pane_path,
-        git::fetch_git_data,
-        |data| state.apply_git_data(data),
-    );
-}
-
+#[cfg(test)]
 pub(super) fn refresh_git_for_focused_pane_with<FGetPath, FFetchGit, FApply>(
     focused_pane_id: Option<String>,
     get_pane_path: FGetPath,

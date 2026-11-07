@@ -90,13 +90,9 @@ pub fn run(
 
         let sigusr1 = needs_refresh.swap(false, Ordering::Relaxed);
         if sigusr1 || last_refresh.elapsed() >= refresh_interval {
-            let previous_focused_pane_id = state.focus_state.focused_pane_id.clone();
             width_guard.tick(&state.tmux_pane);
             let is_window_active = state.refresh();
             state.follow_exited_agent();
-            if state.focus_state.focused_pane_id != previous_focused_pane_id {
-                render::refresh_git_for_focused_pane(&mut state);
-            }
             needs_redraw = true;
             if is_window_active {
                 if window_inactive_count >= 2 {
@@ -107,7 +103,8 @@ pub fn run(
             } else {
                 window_inactive_count = window_inactive_count.saturating_add(1);
             }
-            git_tab_active.store(state.bottom_tab == BottomTab::GitStatus, Ordering::Relaxed);
+            state.bottom_tab = BottomTab::Usage;
+            git_tab_active.store(false, Ordering::Relaxed);
             // Queue a usage fetch when the focused agent changed, or when
             // the visible Usage tab has gone stale. Focus changes therefore
             // refresh immediately instead of waiting for the next interval.

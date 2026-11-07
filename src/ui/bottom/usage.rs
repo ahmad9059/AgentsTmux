@@ -10,8 +10,6 @@ use crate::state::AppState;
 use crate::ui::text::display_width;
 use crate::usage::{UsageSnapshot, format_countdown};
 
-/// Number of cells in a usage meter: `████░░░░`.
-const METER_CELLS: usize = 10;
 /// Fill characters, from empty to full. The last step keeps a sliver so a
 /// non-zero usage never renders as completely empty.
 const METER_EMPTY: char = '░';
@@ -56,11 +54,27 @@ fn build_lines<'a>(
         heading.push_str(&format!(" · {plan}"));
     }
     lines.push(Line::from(Span::styled(
-        heading,
+        crate::ui::text::truncate_to_width(&heading, width),
         Style::default().fg(theme.session_header),
     )));
     lines.push(Line::from(""));
 
+    // Use the same longest-fit meter for every window so the two bars line
+    // up even when their countdowns have different lengths.
+    let reserved = snapshot
+        .windows
+        .iter()
+        .map(|window| {
+            let percent = format!("{:.0}%", window.percent.clamp(0.0, 100.0));
+            let tail = window
+                .resets_at
+                .map(|at| format!("{}  {percent}", format_countdown(at, now)))
+                .unwrap_or(percent);
+            display_width(&window.label) + 1 + display_width(&tail) + 1
+        })
+        .max()
+        .unwrap_or(0);
+    let meter_cells = width.saturating_sub(reserved);
     for window in &snapshot.windows {
         lines.push(window_line(
             &window.label,
@@ -68,16 +82,19 @@ fn build_lines<'a>(
             window.resets_at,
             now,
             width,
+            meter_cells,
             theme,
         ));
+        lines.push(Line::from(""));
     }
 
     for (label, value) in &snapshot.local {
         lines.push(kv_line(label, value, width, theme));
+        lines.push(Line::from(""));
     }
 
     for extra in &snapshot.extras {
-        for chunk in crate::ui::text::wrap_text_char(extra, width, 2) {
+        for chunk in crate::ui::text::wrap_text_char(extra, width.max(1), 2) {
             lines.push(Line::from(Span::styled(
                 chunk,
                 Style::default().fg(theme.text_muted),
@@ -90,7 +107,7 @@ fn build_lines<'a>(
         if !snapshot.windows.is_empty() || !snapshot.local.is_empty() {
             lines.push(Line::from(""));
         }
-        for chunk in crate::ui::text::wrap_text_char(message, width, 3) {
+        for chunk in crate::ui::text::wrap_text_char(message, width.max(1), 3) {
             lines.push(Line::from(Span::styled(
                 chunk,
                 Style::default().fg(theme.text_inactive),
@@ -107,34 +124,41 @@ fn window_line<'a>(
     resets_at: Option<u64>,
     now: u64,
     width: usize,
+    cells: usize,
     theme: &crate::ui::colors::ColorTheme,
 ) -> Line<'a> {
     let clamped = percent.clamp(0.0, 100.0);
-    // Bars are cheaper to scan than the number, so they lead; the number
-    // stays right-aligned next to the percent sign for precision.
+    let color = severity_color(clamped, theme);
     let percent_text = format!("{:.0}%", clamped);
     let reset_text = resets_at
         .map(|at| format_countdown(at, now))
         .unwrap_or_default();
-    let left_width = display_width(label) + 1 + METER_CELLS;
+    let label_width = display_width(label) + 1;
 
-    // Right-align the countdown and percentage, keeping at least one space
-    // between them and the meter.
+    // Shrink the meter before dropping either of the numbers: a shorter bar
+    // still reads as "how full", whereas a missing percentage does not.
     let tail = if reset_text.is_empty() {
         percent_text.clone()
     } else {
         format!("{reset_text}  {percent_text}")
     };
-    let gap = width
-        .saturating_sub(left_width + display_width(&tail))
-        .max(1);
+    let tail_width = display_width(&tail);
+    if cells < 3 {
+        // Not enough room for label + meter + numbers: fall back to a compact
+        // `5h 95%` row so the panel stays readable in a very narrow sidebar.
+        let compact = format!("{label} {percent_text}");
+        return Line::from(Span::styled(
+            crate::ui::text::truncate_to_width(&compact, width),
+            Style::default().fg(color),
+        ));
+    }
 
+    let gap = width
+        .saturating_sub(label_width + cells + tail_width)
+        .max(1);
     let mut spans = vec![
         Span::styled(format!("{label} "), Style::default().fg(theme.text_muted)),
-        Span::styled(
-            meter(clamped, METER_CELLS),
-            Style::default().fg(severity_color(clamped, theme)),
-        ),
+        Span::styled(meter(clamped, cells), Style::default().fg(color)),
         Span::raw(" ".repeat(gap)),
     ];
     if !reset_text.is_empty() {
@@ -144,10 +168,7 @@ fn window_line<'a>(
         ));
         spans.push(Span::raw("  "));
     }
-    spans.push(Span::styled(
-        percent_text,
-        Style::default().fg(severity_color(clamped, theme)),
-    ));
+    spans.push(Span::styled(percent_text, Style::default().fg(color)));
     Line::from(spans)
 }
 
@@ -270,18 +291,27 @@ mod tests {
         let theme = ColorTheme::default();
         let lines = build_lines(&snapshot(), 1_794_000_000, 28, &theme);
         let row = line_text(&lines[2]);
-        assert!(row.starts_with("5h █████████░"), "row was {row:?}");
+        assert!(row.starts_with("5h ██████████░░"), "row was {row:?}");
         assert!(row.ends_with(" 91%"), "row was {row:?}");
         assert!(row.contains("16h 49m"), "row was {row:?}");
         assert_eq!(display_width(&row), 28);
     }
 
     #[test]
+    fn narrow_panel_falls_back_to_compact_window_rows() {
+        let theme = ColorTheme::default();
+        // 12 columns cannot fit label + meter + countdown + percent.
+        let lines = build_lines(&snapshot(), 1_794_000_000, 12, &theme);
+        let row = line_text(&lines[2]);
+        assert_eq!(row, "5h 91%");
+    }
+
+    #[test]
     fn window_without_reset_omits_countdown() {
         let theme = ColorTheme::default();
         let lines = build_lines(&snapshot(), 1_794_000_000, 28, &theme);
-        let row = line_text(&lines[3]);
-        assert!(row.starts_with("1w █████░░░░░"), "row was {row:?}");
+        let row = line_text(&lines[4]);
+        assert!(row.starts_with("1w ██████░░░░░░"), "row was {row:?}");
         assert!(row.ends_with(" 51%"), "row was {row:?}");
     }
 
@@ -324,7 +354,23 @@ mod tests {
         assert_eq!(joined[0], "OpenCode");
         assert_eq!(joined[1], "");
         assert!(joined[2].starts_with("Using   commandcode"), "{joined:?}");
-        assert!(joined[3].starts_with("Session $15.22"), "{joined:?}");
+        assert!(joined[4].starts_with("Session $15.22"), "{joined:?}");
+    }
+
+    #[test]
+    fn no_row_overflows_a_narrow_panel() {
+        let theme = ColorTheme::default();
+        for width in [12usize, 16, 20, 24, 28, 40] {
+            let lines = build_lines(&snapshot(), 1_794_000_000, width, &theme);
+            for line in &lines {
+                let text = line_text(line);
+                assert!(
+                    display_width(&text) <= width,
+                    "width {width}: row {text:?} is {} wide",
+                    display_width(&text)
+                );
+            }
+        }
     }
 
     #[test]

@@ -8,6 +8,56 @@ use test_helpers::*;
 // ─── Bottom Tab Tests ──────────────────────────────────────────────
 
 #[test]
+fn usage_divider_and_spacing_preserve_blank_rows() {
+    let pane = make_pane(AgentType::Claude, PaneStatus::Running);
+    let mut state = make_state(vec![]);
+    state.repo_groups = vec![make_repo_group("project", vec![pane])];
+    let mut snapshot = claude_usage();
+    snapshot.local = vec![
+        ("Using".into(), "anthropic".into()),
+        ("Model".into(), "claude-sonnet".into()),
+        ("Session".into(), "$0.56".into()),
+        ("Today".into(), "$15.92".into()),
+    ];
+    attach_usage(&mut state, snapshot);
+    let mut terminal = ratatui::Terminal::new(ratatui::backend::TestBackend::new(32, 20)).unwrap();
+    terminal
+        .draw(|frame| {
+            agents_tmux::ui::bottom::draw_bottom(frame, &mut state, frame.area());
+        })
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    let output = (0..20)
+        .map(|y| {
+            (0..32)
+                .map(|x| buffer[(x, y)].symbol())
+                .collect::<String>()
+                .trim_end()
+                .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    insta::assert_snapshot!(output, @"
+    ─────────── Usage ────────────
+    Claude Code · max
+
+    5h █████████████░░ 2h 00m  91%
+
+    1w ███████░░░░░░░░  3d 0h  51%
+
+    Using   anthropic
+
+    Model   claude-sonnet
+
+    Session $0.56
+
+    Today   $15.92
+
+    Extra $22.24 / $20.00
+    ");
+}
+
+#[test]
 fn test_next_bottom_tab() {
     let mut state = make_state(vec![]);
     assert_eq!(state.bottom_tab, BottomTab::Usage);
@@ -103,16 +153,8 @@ fn snapshot_git_status_tab_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │feature/sidebar       ↑2↓1│
-    │+42/-15            3 files│
-    │──────────────────────────│
-    │Unstaged (2)              │
-    │M src/ui/panes.rs  +30/-10│
-    │M src/state.rs      +12/-5│
-    │Untracked (1)             │
-    │? new_file.rs             │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -141,9 +183,8 @@ fn snapshot_git_clean_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -172,12 +213,11 @@ fn snapshot_usage_tab_active_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │Claude Code · max         │
-    │5h █████████░  2h 00m  91%│
-    │1w █████░░░░░   3d 0h  51%│
-    │Extra $22.24 / $20.00     │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+     Claude Code · max
+     5h ██████████░ 2h 00m  91%
+     1w █████░░░░░░  3d 0h  51%
+     Extra $22.24 / $20.00
     ");
 }
 
@@ -204,9 +244,8 @@ fn snapshot_usage_tab_loading_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │      Loading usage…      │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -235,14 +274,13 @@ fn snapshot_usage_tab_opencode_local_spend_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │OpenCode                  │
-    │Using   commandcode       │
-    │Model   deepseek-v4.1-fl… │
-    │Session $15.22 · 1.2M tok │
-    │Today   $20.50            │
-    │No limits for commandcode │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+     OpenCode
+     Using   commandcode
+     Model   deepseek-v4.1-fl…
+     Session $15.22 · 1.2M tok
+     Today   $20.50
+     No limits for commandcode
     ");
 }
 
@@ -256,9 +294,8 @@ fn snapshot_usage_tab_without_agents_ui() {
     let output = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │     No agent selected    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+          No agent selected
     ");
 }
 
@@ -282,12 +319,11 @@ fn snapshot_tab_bar_renders_both_labels() {
     let output = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │Claude Code · max         │
-    │5h █████████░  2h 00m  91%│
-    │1w █████░░░░░   3d 0h  51%│
-    │Extra $22.24 / $20.00     │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+     Claude Code · max
+     5h ██████████░ 2h 00m  91%
+     1w █████░░░░░░  3d 0h  51%
+     Extra $22.24 / $20.00
     ");
 }
 
@@ -338,16 +374,8 @@ fn snapshot_git_full_info_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │+120/-30           3 files│
-    │──────────────────────────│
-    │Unstaged (2)              │
-    │M src/state.rs     +42/-10│
-    │M src/ui/bottom.rs +85/-20│
-    │Untracked (1)             │
-    │? new_file.rs             │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -376,12 +404,8 @@ fn snapshot_git_diff_summary_tight_ui() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │+10/-3             0 files│
-    │──────────────────────────│
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -417,13 +441,8 @@ fn snapshot_git_staged_file_diff_right_ui() {
     let plain = render_to_string(&mut state, 28, 18);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │+10/-2             1 files│
-    │──────────────────────────│
-    │Staged (1)                │
-    │M app.rs            +10/-2│
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -459,13 +478,8 @@ fn snapshot_git_unstaged_long_name_diff_right_ui() {
     let plain = render_to_string(&mut state, 28, 18);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │+150/-50           1 files│
-    │──────────────────────────│
-    │Unstaged (1)              │
-    │M very-long-file… +150/-50│
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -511,14 +525,8 @@ fn snapshot_git_long_filename_truncated_ui() {
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │                   2 files│
-    │──────────────────────────│
-    │Unstaged (2)              │
-    │M very-long-file… +150/-50│
-    │M short.rs           +8/-2│
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -600,19 +608,8 @@ fn snapshot_git_more_than_5_files() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │                   7 files│
-    │──────────────────────────│
-    │Unstaged (7)              │
-    │M a.rs             +100/-0│
-    │M b.rs              +80/-0│
-    │M c.rs              +60/-0│
-    │M d.rs              +40/-0│
-    │M e.rs              +20/-0│
-    │M f.rs              +10/-0│
-    │M g.rs               +5/-0│
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 
     // Setting `offset = 5` when the viewport can show all 8 content
@@ -626,19 +623,8 @@ fn snapshot_git_more_than_5_files() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │                   7 files│
-    │──────────────────────────│
-    │Unstaged (7)              │
-    │M a.rs             +100/-0│
-    │M b.rs              +80/-0│
-    │M c.rs              +60/-0│
-    │M d.rs              +40/-0│
-    │M e.rs              +20/-0│
-    │M f.rs              +10/-0│
-    │M g.rs               +5/-0│
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -667,11 +653,8 @@ fn snapshot_git_branch_only_no_changes() {
     let plain = render_to_string(&mut state, 38, 20);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents                         — 
-    ╭ Usage │ Git ───────────────────────╮
-    │feature/long-branch-name          ↑5│
-    │────────────────────────────────────│
-    │         Working tree clean         │
-    ╰────────────────────────────────────╯
+     ────────────── Usage ───────────────
+                Loading usage…
     ");
 }
 
@@ -702,30 +685,21 @@ fn snapshot_git_pr_number_ui() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │feature/fix            #42│
-    │+10/-3             0 files│
-    │──────────────────────────│
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
     // Styled snapshot locks in the PR link's underline + pr_link color (fg:117)
     // so future style regressions surface as a diff rather than a missed grep.
     insta::assert_snapshot!(render_to_styled_string(&mut state, 28, 14), @"
     ⓘ[fg:208] [fg:39,bold] [fg:39,bold]A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold]               —[fg:252] [fg:252]
 
-    ╭[fg:153] [fg:153]U[fg:252]s[fg:252]a[fg:252]g[fg:252]e[fg:252] [fg:240]│[fg:240] [fg:240]G[fg:153]i[fg:153]t[fg:153] [fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]╮[fg:153]
-    │[fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]│[fg:153]
-    │[fg:153]f[fg:255]e[fg:255]a[fg:255]t[fg:255]u[fg:255]r[fg:255]e[fg:255]/[fg:255]f[fg:255]i[fg:255]x[fg:255] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]#[fg:117,underline]4[fg:117,underline]2[fg:117,underline]│[fg:153]
-    │[fg:153]+[fg:114]1[fg:114]0[fg:114]/[fg:252]-[fg:174]3[fg:174] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]0[fg:252] [fg:252]f[fg:252]i[fg:252]l[fg:252]e[fg:252]s[fg:252]│[fg:153]
-    │[fg:153]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]│[fg:153]
-    │[fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]│[fg:153]
-    │[fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]│[fg:153]
-    │[fg:153] [fg:153] [fg:153] [fg:153] [fg:153]W[fg:252]o[fg:252]r[fg:252]k[fg:252]i[fg:252]n[fg:252]g[fg:252] [fg:252]t[fg:252]r[fg:252]e[fg:252]e[fg:252] [fg:252]c[fg:252]l[fg:252]e[fg:252]a[fg:252]n[fg:252] [fg:153] [fg:153] [fg:153] [fg:153]│[fg:153]
-    │[fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]│[fg:153]
-    │[fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]│[fg:153]
-    │[fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]│[fg:153]
-    ╰[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]╯[fg:153]
+     ─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153] [fg:153]U[fg:153]s[fg:153]a[fg:153]g[fg:153]e[fg:153] [fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]
+
+
+
+
+
+           L[fg:252]o[fg:252]a[fg:252]d[fg:252]i[fg:252]n[fg:252]g[fg:252] [fg:252]u[fg:252]s[fg:252]a[fg:252]g[fg:252]e[fg:252]…[fg:252]
     ");
 }
 
@@ -764,12 +738,8 @@ fn snapshot_git_pr_with_diff_ui() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │main                  #123│
-    │+55/-20            0 files│
-    │──────────────────────────│
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -799,9 +769,8 @@ fn snapshot_subagents_tree_ui() {
         ├ Explore #1
         ├ Plan #2
         └ Explore #2
-    ╭ Usage │ Git ─────────────────────────╮
-    │            Loading usage…            │
-    ╰──────────────────────────────────────╯
+     ─────────────── Usage ────────────────
+                 Loading usage…
     ");
 }
 
@@ -834,9 +803,8 @@ fn snapshot_subagent_long_name_truncated_ui() {
     ┃ ⠋ claude
         ├ superpowers:code-revi…
         └ claude-code-guide #2
-    ╭ Usage │ Git ─────────────╮
-    │      Loading usage…      │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 
     assert_right_border_intact(&output);
@@ -868,9 +836,8 @@ fn snapshot_git_clean_centered_ui() {
     project
     ┃ ○ claude
         Waiting for prompt…
-    ╭ Usage │ Git ─────────────╮
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -905,11 +872,8 @@ fn snapshot_git_branch_loaded_no_changes_shows_inline_clean() {
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │──────────────────────────│
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -939,9 +903,8 @@ fn snapshot_git_no_data_shows_centered_clean() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -972,11 +935,8 @@ fn test_git_behind_only() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │main                    ↓3│
-    │──────────────────────────│
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -1005,11 +965,8 @@ fn test_git_ahead_and_behind() {
     let plain = render_to_string(&mut state, 38, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents                         — 
-    ╭ Usage │ Git ───────────────────────╮
-    │main                            ↑2↓3│
-    │────────────────────────────────────│
-    │         Working tree clean         │
-    ╰────────────────────────────────────╯
+     ────────────── Usage ───────────────
+                Loading usage…
     ");
 }
 
@@ -1040,12 +997,8 @@ fn test_git_diff_insertions_only() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │+25/-0             0 files│
-    │──────────────────────────│
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -1074,12 +1027,8 @@ fn test_git_diff_deletions_only() {
     let plain = render_to_string(&mut state, 28, 14);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents               — 
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │+0/-15             0 files│
-    │──────────────────────────│
-    │    Working tree clean    │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -1118,9 +1067,8 @@ fn snapshot_branch_truncated_ui() {
     dotfiles                   +
     ┃ ⠋ claude
     ┃   feature/tmux-sidebar-da…
-    ╭ Usage │ Git ─────────────╮
-    │      Loading usage…      │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -1176,18 +1124,8 @@ fn snapshot_git_staged_unstaged_untracked_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Usage │ Git ─────────────╮
-    │main                    #5│
-    │+12/-3             4 files│
-    │──────────────────────────│
-    │Staged (2)                │
-    │M app.rs            +10/-2│
-    │A new.rs             +2/-0│
-    │Unstaged (1)              │
-    │M config.toml        +0/-1│
-    │Untracked (1)             │
-    │? debug.log               │
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -1225,13 +1163,8 @@ fn snapshot_git_long_branch_with_pr_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │feature/very-long-br… #123│
-    │+5/-2              1 files│
-    │──────────────────────────│
-    │Unstaged (1)              │
-    │M main.rs            +5/-2│
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
     assert_right_border_intact(&output);
 }
@@ -1269,13 +1202,8 @@ fn snapshot_git_staged_only_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               — 
     project
-    ╭ Usage │ Git ─────────────╮
-    │main                      │
-    │+20/-0             1 files│
-    │──────────────────────────│
-    │Staged (1)                │
-    │A new_feature.rs    +20/-0│
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
 }
 
@@ -1314,19 +1242,8 @@ fn snapshot_git_many_files_more_indicator_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Usage │ Git ─────────────╮
-    │dev                       │
-    │                   7 files│
-    │──────────────────────────│
-    │Unstaged (7)              │
-    │M f0.rs              +1/-0│
-    │M f1.rs              +1/-0│
-    │M f2.rs              +1/-0│
-    │M f3.rs              +1/-0│
-    │M f4.rs              +1/-0│
-    │M f5.rs              +1/-0│
-    │M f6.rs              +1/-0│
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
     assert_right_border_intact(&output);
 }
@@ -1366,23 +1283,8 @@ fn snapshot_git_more_than_10_files_ui() {
     ⓘ  Agents               — 
     project
     ┃ ⠋ claude
-    ╭ Usage │ Git ─────────────╮
-    │dev                       │
-    │                  12 files│
-    │──────────────────────────│
-    │Unstaged (12)             │
-    │M f0.rs              +1/-0│
-    │M f1.rs              +1/-0│
-    │M f2.rs              +1/-0│
-    │M f3.rs              +1/-0│
-    │M f4.rs              +1/-0│
-    │M f5.rs              +1/-0│
-    │M f6.rs              +1/-0│
-    │M f7.rs              +1/-0│
-    │M f8.rs              +1/-0│
-    │M f9.rs              +1/-0│
-    │                   +2 more│
-    ╰──────────────────────────╯
+     ───────── Usage ──────────
+           Loading usage…
     ");
     assert_right_border_intact(&output);
 }
@@ -1433,26 +1335,17 @@ fn snapshot_focused_group_active_border_styled() {
        [fg:244] [fg:244]W[fg:244]a[fg:244]i[fg:244]t[fg:244]i[fg:244]n[fg:244]g[fg:244] [fg:244]f[fg:244]o[fg:244]r[fg:244] [fg:244]p[fg:244]r[fg:244]o[fg:244]m[fg:244]p[fg:244]t[fg:244]…[fg:244]
 
 
-    ╭[fg:240] [fg:240]U[fg:153]s[fg:153]a[fg:153]g[fg:153]e[fg:153] [fg:240]│[fg:240] [fg:240]G[fg:252]i[fg:252]t[fg:252] [fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]╮[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]L[fg:252]o[fg:252]a[fg:252]d[fg:252]i[fg:252]n[fg:252]g[fg:252] [fg:252]u[fg:252]s[fg:252]a[fg:252]g[fg:252]e[fg:252]…[fg:252] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    │[fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240] [fg:240]│[fg:240]
-    ╰[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]╯[fg:240]
+     ─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240] [fg:240]U[fg:153]s[fg:153]a[fg:153]g[fg:153]e[fg:153] [fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]
+
+
+
+
+
+
+
+
+
+           L[fg:252]o[fg:252]a[fg:252]d[fg:252]i[fg:252]n[fg:252]g[fg:252] [fg:252]u[fg:252]s[fg:252]a[fg:252]g[fg:252]e[fg:252]…[fg:252]
     ");
 }
 
@@ -1482,8 +1375,7 @@ fn test_pet_enabled_preserves_bottom_panel_border() {
       ▄ ▄
      ▄▀▀▀▄                             ████
       ▀ ▀                           ██ █  █
-    ╭ Usage │ Git ─────────────────────────╮
-    │            Loading usage…            │
-    ╰──────────────────────────────────────╯
+     ─────────────── Usage ────────────────
+                 Loading usage…
     ");
 }

@@ -1,12 +1,17 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
+#[cfg(test)]
+use std::sync::atomic::Ordering;
 use std::sync::mpsc::{self, Receiver};
 use std::time::Duration;
 
-use crate::git::{self, GitData};
+#[cfg(test)]
+use crate::git;
+use crate::git::GitData;
 use crate::session;
-use crate::state::{AppState, BottomTab};
+use crate::state::AppState;
+#[cfg(test)]
 use crate::tmux;
 use crate::usage::{UsageFetcher, UsageSnapshot, UsageTarget};
 use crate::version::{self, UpdateNotice};
@@ -27,16 +32,11 @@ pub(super) struct Workers {
 
 /// Spawn the background threads (git polling, session-name polling, version
 /// notice fetch) that feed the event loop.
-pub(super) fn spawn(state: &AppState) -> Workers {
-    let (git_tx, git_rx) = mpsc::channel::<GitData>();
+pub(super) fn spawn(_state: &AppState) -> Workers {
+    let (_git_tx, git_rx) = mpsc::channel::<GitData>();
     let (session_tx, session_rx) = mpsc::channel::<HashMap<String, String>>();
     let (version_tx, version_rx) = mpsc::channel::<UpdateNotice>();
-    let tmux_pane_clone = state.tmux_pane.clone();
-    let git_tab_active = Arc::new(AtomicBool::new(state.bottom_tab == BottomTab::GitStatus));
-    let git_tab_flag = Arc::clone(&git_tab_active);
-    std::thread::spawn(move || {
-        git_poll_loop(&tmux_pane_clone, &git_tx, &git_tab_flag);
-    });
+    let git_tab_active = Arc::new(AtomicBool::new(false));
     std::thread::spawn(move || {
         session_poll_loop(&session_tx);
     });
@@ -101,6 +101,8 @@ pub(super) fn session_poll_loop(tx: &mpsc::Sender<HashMap<String, String>>) {
 /// through an in-memory `(path, branch)`-keyed cache so `gh pr view` (the only
 /// hop that costs GitHub API quota) runs at most once per `PR_CACHE_TTL`
 /// instead of every tick.
+#[cfg(test)]
+#[allow(dead_code)]
 pub(super) fn git_poll_loop(tmux_pane: &str, git_tx: &mpsc::Sender<GitData>, active: &AtomicBool) {
     let mut last_path: Option<String> = None;
     let mut pr_cache = git::PrCache::new();

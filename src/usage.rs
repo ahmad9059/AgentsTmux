@@ -29,6 +29,9 @@ use serde_json::Value;
 use crate::time::now_epoch_secs;
 use crate::tmux::AgentType;
 
+mod http;
+mod native;
+
 pub const CLAUDE_USAGE_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 pub const CODEX_USAGE_URL: &str = "https://chatgpt.com/backend-api/wham/usage";
 
@@ -122,6 +125,7 @@ impl UsageFetcher {
         match target.agent {
             AgentType::Claude if !target.is_pi => {
                 snapshot.title = "Claude Code".into();
+                snapshot.local = native::details(target, fetched_at);
                 match self.claude_cached() {
                     Ok(usage) => apply_provider(&mut snapshot, usage),
                     Err(err) => snapshot.message = Some(err),
@@ -129,6 +133,7 @@ impl UsageFetcher {
             }
             AgentType::Codex => {
                 snapshot.title = "Codex".into();
+                snapshot.local = native::details(target, fetched_at);
                 match self.codex_cached() {
                     Ok(usage) => apply_provider(&mut snapshot, usage),
                     Err(err) => snapshot.message = Some(err),
@@ -142,8 +147,12 @@ impl UsageFetcher {
                         snapshot.plan = None;
                         snapshot.local = local_lines(&local);
                         match provider_for(&local.provider) {
-                            Some(ProviderKind::Claude) => self.attach_provider(&mut snapshot, true),
-                            Some(ProviderKind::Codex) => self.attach_provider(&mut snapshot, false),
+                            Some(ProviderKind::Claude) => {
+                                self.attach_provider(&mut snapshot, true, target)
+                            }
+                            Some(ProviderKind::Codex) => {
+                                self.attach_provider(&mut snapshot, false, target)
+                            }
                             None => {
                                 snapshot.message =
                                     Some(format!("No limits for {}", local.provider));
@@ -160,8 +169,12 @@ impl UsageFetcher {
                     Ok(local) => {
                         snapshot.local = local_lines(&local);
                         match provider_for(&local.provider) {
-                            Some(ProviderKind::Claude) => self.attach_provider(&mut snapshot, true),
-                            Some(ProviderKind::Codex) => self.attach_provider(&mut snapshot, false),
+                            Some(ProviderKind::Claude) => {
+                                self.attach_provider(&mut snapshot, true, target)
+                            }
+                            Some(ProviderKind::Codex) => {
+                                self.attach_provider(&mut snapshot, false, target)
+                            }
                             None => {
                                 snapshot.message =
                                     Some(format!("No limits for {}", local.provider));
@@ -180,12 +193,19 @@ impl UsageFetcher {
         snapshot
     }
 
-    fn attach_provider(&mut self, snapshot: &mut UsageSnapshot, claude: bool) {
-        let usage = if claude {
-            self.claude_cached()
-        } else {
-            self.codex_cached()
-        };
+    fn attach_provider(
+        &mut self,
+        snapshot: &mut UsageSnapshot,
+        claude: bool,
+        target: &UsageTarget,
+    ) {
+        let usage = harness_credentials(target, claude).and_then(|credential| {
+            if claude {
+                fetch_claude_with_token(&credential.0, None)
+            } else {
+                fetch_codex_with_token(&credential.0, &credential.1)
+            }
+        });
         match usage {
             Ok(usage) => apply_provider(snapshot, usage),
             Err(err) => {
@@ -278,12 +298,70 @@ fn local_lines(local: &LocalUsage) -> Vec<(String, String)> {
 
 fn fetch_claude_usage() -> Result<ProviderUsage, String> {
     let (token, plan) = claude_credentials()?;
+    match fetch_claude_with_token(&token, plan.clone()) {
+        Ok(usage) => Ok(usage),
+        Err(original_error) => {
+            // An OAuth application's usage endpoint can be throttled while
+            // another application on the exact same account still works.
+            // Only reuse its quota after the provider verifies BOTH account
+            // and organization identity. Never borrow an unrelated account.
+            let target = UsageTarget {
+                key: String::new(),
+                agent: AgentType::OpenCode,
+                is_pi: false,
+                session_id: None,
+                cwd: String::new(),
+            };
+            let fallback = harness_credentials(&target, true).and_then(|(other, _)| {
+                if token == other || !verified_same_claude_account(&token, &other) {
+                    return Err(original_error.clone());
+                }
+                fetch_claude_with_token(&other, plan)
+            });
+            fallback.map_err(|_| original_error)
+        }
+    }
+}
+
+fn verified_same_claude_account(first: &str, second: &str) -> bool {
+    let identity = |token: &str| -> Option<(String, String)> {
+        let profile = http_get_json(
+            "https://api.anthropic.com/api/oauth/profile",
+            &[
+                ("Authorization", format!("Bearer {token}")),
+                ("anthropic-beta", "oauth-2025-04-20".into()),
+                ("User-Agent", "agents-tmux".into()),
+            ],
+        )
+        .ok()?;
+        claude_account_identity(&profile)
+    };
+    match (identity(first), identity(second)) {
+        (Some(first), Some(second)) => first == second,
+        _ => false,
+    }
+}
+
+fn claude_account_identity(profile: &Value) -> Option<(String, String)> {
+    let account = profile.pointer("/account/uuid")?.as_str()?.trim();
+    let organization = profile.pointer("/organization/uuid")?.as_str()?.trim();
+    if account.is_empty() || organization.is_empty() {
+        return None;
+    }
+    Some((account.into(), organization.into()))
+}
+
+fn fetch_claude_with_token(token: &str, plan: Option<String>) -> Result<ProviderUsage, String> {
     let headers = [
         ("Authorization", format!("Bearer {token}")),
         ("anthropic-beta", "oauth-2025-04-20".to_string()),
         ("User-Agent", "agents-tmux".to_string()),
     ];
     let value = http_get_json(CLAUDE_USAGE_URL, &headers)?;
+    parse_claude_usage(&value, plan)
+}
+
+fn parse_claude_usage(value: &Value, plan: Option<String>) -> Result<ProviderUsage, String> {
     let mut windows = Vec::new();
     for (path, label) in [("/five_hour", "5h"), ("/seven_day", "1w")] {
         let Some(window) = value.pointer(path) else {
@@ -306,6 +384,7 @@ fn fetch_claude_usage() -> Result<ProviderUsage, String> {
     }
 
     let mut extras = Vec::new();
+    stale_notice(value, &mut extras);
     if let Some(extra) = value.get("extra_usage")
         && extra
             .get("is_enabled")
@@ -354,15 +433,17 @@ fn claude_credentials() -> Result<(String, Option<String>), String> {
 
 fn fetch_codex_usage() -> Result<ProviderUsage, String> {
     let (token, account) = codex_credentials()?;
+    fetch_codex_with_token(&token, &account)
+        .or_else(|network_error| codex_usage_from_rollout().map_err(|_| network_error))
+}
+
+fn fetch_codex_with_token(token: &str, account: &str) -> Result<ProviderUsage, String> {
     let headers = [
         ("Authorization", format!("Bearer {token}")),
-        ("chatgpt-account-id", account),
+        ("chatgpt-account-id", account.to_string()),
         ("User-Agent", "agents-tmux".to_string()),
     ];
-    match http_get_json(CODEX_USAGE_URL, &headers) {
-        Ok(value) => parse_codex_usage(&value),
-        Err(network_error) => codex_usage_from_rollout().map_err(|_| network_error),
-    }
+    parse_codex_usage(&http_get_json(CODEX_USAGE_URL, &headers)?)
 }
 
 fn codex_credentials() -> Result<(String, String), String> {
@@ -414,6 +495,7 @@ fn parse_codex_usage(value: &Value) -> Result<ProviderUsage, String> {
     }
 
     let mut extras = Vec::new();
+    stale_notice(value, &mut extras);
     if rate_limit
         .get("limit_reached")
         .and_then(Value::as_bool)
@@ -766,29 +848,58 @@ fn config_home(suffix: &str) -> PathBuf {
 }
 
 fn http_get_json(url: &str, headers: &[(&str, String)]) -> Result<Value, String> {
-    let mut command = Command::new("curl");
-    command.args(["-sS", "--connect-timeout", "3", "--max-time", "8"]);
-    for (name, value) in headers {
-        command.arg("-H").arg(format!("{name}: {value}"));
+    http::get(url, headers)
+}
+
+fn stale_notice(value: &Value, extras: &mut Vec<String>) {
+    if let Some(age) = value["_agentstmux_stale_seconds"].as_u64() {
+        extras.push(format!("Cached {}m ago · retrying", age / 60));
     }
-    command.arg(url);
-    let output = command
-        .output()
-        .map_err(|_| "curl is not installed".to_string())?;
-    if !output.status.success() {
-        return Err("Usage request failed".into());
+}
+
+/// A harness can use a different account from the native CLI. Never show
+/// native CLI limits as if they belonged to the harness's API-key account.
+fn harness_credentials(target: &UsageTarget, claude: bool) -> Result<(String, String), String> {
+    let provider = if claude { "anthropic" } else { "openai" };
+    let credential = if target.is_pi {
+        let raw = fs::read_to_string(config_home(".pi/agent/auth.json"))
+            .map_err(|_| "Pi provider credentials unavailable".to_string())?;
+        let auth: Value =
+            serde_json::from_str(&raw).map_err(|_| "Pi credentials unreadable".to_string())?;
+        auth[if claude { "anthropic" } else { "openai-codex" }].clone()
+    } else {
+        let db = config_home(".local/share/opencode/opencode.db");
+        let sql = format!(
+            "select value from credential where integration_id='{provider}' and active=1 order by time_updated desc limit 1;"
+        );
+        let row = sqlite3(&db, &sql).unwrap_or_default();
+        serde_json::from_str::<Value>(&row)
+            .ok()
+            .or_else(|| {
+                let raw =
+                    fs::read_to_string(config_home(".local/share/opencode/auth.json")).ok()?;
+                let auth: Value = serde_json::from_str(&raw).ok()?;
+                Some(auth[provider].clone())
+            })
+            .unwrap_or(Value::Null)
+    };
+    parse_harness_credential(&credential)
+}
+
+fn parse_harness_credential(credential: &Value) -> Result<(String, String), String> {
+    if credential["type"].as_str() != Some("oauth") {
+        return Err("Provider has no subscription usage".into());
     }
-    let body = String::from_utf8_lossy(&output.stdout);
-    let value: Value =
-        serde_json::from_str(&body).map_err(|_| "Unexpected usage response".to_string())?;
-    if value.get("type").and_then(Value::as_str) == Some("error") {
-        return Err(value
-            .pointer("/error/message")
-            .and_then(Value::as_str)
-            .unwrap_or("Usage request was rejected")
-            .to_string());
-    }
-    Ok(value)
+    let token = credential["access"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| "Provider sign-in unavailable".to_string())?;
+    let account = credential
+        .pointer("/metadata/accountID")
+        .or_else(|| credential.get("accountId"))
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    Ok((token.to_string(), account.to_string()))
 }
 
 /// Parse an RFC 3339 timestamp (`2026-11-07T14:09:59.697428+00:00`) into
@@ -865,6 +976,52 @@ pub fn format_tokens(tokens: u64) -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn claude_parser_uses_real_windows_and_marks_stale_data() {
+        let value = json!({
+            "five_hour": {"utilization":95.0,"resets_at":"2026-11-07T14:09:59Z"},
+            "seven_day": {"utilization":51.0,"resets_at":"2026-11-09T19:59:59Z"},
+            "_agentstmux_stale_seconds":120
+        });
+        let usage = parse_claude_usage(&value, Some("team".into())).unwrap();
+        assert_eq!(usage.windows.len(), 2);
+        assert_eq!(usage.windows[0].percent, 95.0);
+        assert_eq!(usage.windows[1].label, "1w");
+        assert!(usage.extras[0].contains("Cached 2m"));
+    }
+
+    #[test]
+    fn api_key_harness_does_not_borrow_native_cli_subscription() {
+        assert!(parse_harness_credential(&json!({"type":"api","key":"test"})).is_err());
+        let credential = parse_harness_credential(&json!({
+            "type":"oauth","access":"harness-account-token",
+            "metadata":{"accountID":"harness-account"}
+        }))
+        .unwrap();
+        assert_eq!(credential.0, "harness-account-token");
+        assert_eq!(credential.1, "harness-account");
+    }
+
+    #[test]
+    fn claude_identity_requires_account_and_organization() {
+        let profile = json!({"account":{"uuid":"account-a"},"organization":{"uuid":"org-a"}});
+        let identity = claude_account_identity(&profile).unwrap();
+        assert_eq!(identity, ("account-a".into(), "org-a".into()));
+        assert_ne!(
+            Some(identity),
+            claude_account_identity(&json!({
+                "account":{"uuid":"account-a"},"organization":{"uuid":"different-org"}
+            }))
+        );
+        assert!(claude_account_identity(&json!({"account":{"uuid":"account-a"}})).is_none());
+        assert!(
+            claude_account_identity(
+                &json!({"account":{"uuid":""},"organization":{"uuid":"org-a"}})
+            )
+            .is_none()
+        );
+    }
 
     // ─── timestamp parsing / formatting ─────────────────────────────
 
