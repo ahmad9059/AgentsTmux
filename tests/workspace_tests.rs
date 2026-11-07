@@ -1,5 +1,10 @@
 use agents_tmux::{tmux, worktree};
 use std::process::Command;
+use std::sync::Mutex;
+
+/// The tests share one disposable tmux server, which exits when its last
+/// session ends, so they must not overlap.
+static SERVER: Mutex<()> = Mutex::new(());
 
 fn command(program: &str, args: &[&str], cwd: &std::path::Path) {
     let result = Command::new(program)
@@ -17,6 +22,7 @@ fn command(program: &str, args: &[&str], cwd: &std::path::Path) {
 #[test]
 #[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
 fn single_window_agents_keep_processes_and_worktree_ownership() {
+    let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
     assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
     let directory = tempfile::tempdir().unwrap();
     let root = directory.path();
@@ -148,6 +154,7 @@ fn single_window_agents_keep_processes_and_worktree_ownership() {
 #[test]
 #[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
 fn a_booting_agent_survives_until_its_grace_period_ends() {
+    let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
     assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
     let set = |pane: &str, key: &str, value: &str| {
         tmux::run_tmux_capture(&["set-option", "-p", "-t", pane, key, value]).unwrap();
@@ -190,4 +197,94 @@ fn a_booting_agent_survives_until_its_grace_period_ends() {
     );
     assert!(tmux::get_pane_option_value(pane, tmux::PANE_AGENT).is_empty());
     tmux::run_tmux_capture(&["kill-session", "-t", "grace-test"]).unwrap();
+}
+
+#[test]
+#[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
+fn the_window_switches_to_another_agent_when_the_visible_one_exits() {
+    let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
+    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    let tmux_ok = |args: &[&str]| {
+        tmux::run_tmux_capture(args)
+            .unwrap_or_else(|e| panic!("{args:?}: {e}"))
+            .trim()
+            .to_string()
+    };
+    let first = tempfile::tempdir().unwrap();
+    let second = tempfile::tempdir().unwrap();
+    let new_session = |name: &str, dir: &std::path::Path| {
+        tmux_ok(&[
+            "new-session",
+            "-d",
+            "-s",
+            name,
+            "-c",
+            dir.to_str().unwrap(),
+            "-P",
+            "-F",
+            "#{window_id}|#{pane_id}",
+            "sleep 600",
+        ])
+    };
+    let mark = |pane: &str, agent: &str| {
+        tmux_ok(&["set-option", "-p", "-t", pane, "@pane_agent", agent]);
+        tmux_ok(&["set-option", "-p", "-t", pane, "@pane_status", "idle"]);
+    };
+
+    let created = new_session("fallback-owner", first.path());
+    let (host, agent_a) = created.split_once('|').unwrap();
+    let sidebar = tmux_ok(&[
+        "split-window",
+        "-h",
+        "-d",
+        "-t",
+        host,
+        "-P",
+        "-F",
+        "#{pane_id}",
+        "sleep 600",
+    ]);
+    tmux_ok(&["set-option", "-p", "-t", &sidebar, "@pane_role", "sidebar"]);
+    tmux_ok(&[
+        "set-option",
+        "-t",
+        "fallback-owner",
+        tmux::workspace::HOST,
+        host,
+    ]);
+    mark(agent_a, "claude");
+    tmux_ok(&[
+        "set-option",
+        "-p",
+        "-t",
+        agent_a,
+        "@agent-sidebar-spawned",
+        "1",
+    ]);
+    let parked = new_session("fallback-park", second.path());
+    let agent_b = parked.split_once('|').unwrap().1.to_string();
+    mark(&agent_b, "claude");
+
+    let mut state = agents_tmux::state::AppState::new(sidebar.clone());
+    state.persistent_agent_highlight = true;
+    state.refresh();
+    state.follow_exited_agent();
+    assert_eq!(tmux::workspace::content_pane(host).unwrap(), agent_a);
+
+    // The agent exits: its pane drops to a shell and the hook clears the mark.
+    tmux_ok(&["respawn-pane", "-k", "-t", agent_a, "bash"]);
+    tmux_ok(&["set-option", "-p", "-u", "-t", agent_a, "@pane_agent"]);
+    for _ in 0..3 {
+        state.refresh();
+        state.follow_exited_agent();
+    }
+    assert_eq!(tmux::workspace::content_pane(host).unwrap(), agent_b);
+    let panes = tmux_ok(&["list-panes", "-a", "-F", "#{pane_id}"]);
+    assert!(
+        !panes.lines().any(|p| p == agent_a),
+        "the leftover shell is closed"
+    );
+    // The holding session ends on its own once its only pane is closed.
+    let _ = tmux::run_tmux_capture(&["kill-session", "-t", "fallback-owner"]);
+    let _ = tmux::run_tmux_capture(&["kill-session", "-t", "fallback-park"]);
 }

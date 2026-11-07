@@ -74,6 +74,7 @@ For custom plugin locations, set `AGENTSTMUX_HOOK` to the absolute path of `hook
 - Folders and agents are listed in creation order: a new folder goes to the bottom of the sidebar, and a new agent goes to the bottom of its folder.
 - Use the project **+** button to start an agent. It opens a form in a popup centered over the window (Tab or ↑/↓ to move, ←/→ to change agent and mode, Esc to cancel). The folder field is prefilled with the current folder; edit it (or press **Ctrl+U** to clear it) to open the agent elsewhere. `~` and relative paths work, and the folder must already exist.
 - `agents-tmux spawn [folder]` does the same from a shell.
+- When the agent in view exits (`/exit`, Ctrl+C) or is closed, the window switches to another agent instead of leaving you at a shell: first one in the same folder (the one above it, else below), otherwise the top agent of the nearest folder above (else below). The leftover shell of an agent started from the sidebar is closed.
 - Use an agent's **×** button for removal options. Removing an agent does not close the shared host window.
 
 The sidebar is never opened in every window automatically. It is created by hand with **prefix + e**, and automatically in windows named "Agents" or "Agent" (new, renamed, or restored ones). Set `@sidebar_auto_create` to `on` for every new window, or `off` for none. `@sidebar_width` sets the width in columns (default `32`) or as a percentage such as `15%`.

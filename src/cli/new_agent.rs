@@ -37,12 +37,13 @@ pub fn launch(sidebar_pane: &str, repo_name: &str, repo_root: &str) -> Result<()
             "display-popup",
             "-E",
             "-B",
-            // Themes (e.g. dracula) give popups a solid background. Keep the
-            // terminal's own, so a transparent terminal stays transparent.
+            // Themes (e.g. dracula) give popups a solid background, and
+            // `bg=default` would still inherit it. `terminal` is the
+            // terminal's own colour, so a transparent terminal stays so.
             "-s",
-            "bg=default,fg=default",
+            "bg=terminal,fg=terminal",
             "-S",
-            "bg=default",
+            "bg=terminal",
             "-t",
             sidebar_pane,
             "-w",

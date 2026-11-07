@@ -4,6 +4,7 @@ use crate::ui::colors::ColorTheme;
 use crate::ui::icons::StatusIcons;
 
 mod activity;
+mod fallback;
 mod filter;
 mod focus;
 mod global;
@@ -66,6 +67,7 @@ pub struct AppState {
     /// Open the new-agent form as a tmux popup centered over the window
     /// instead of inside the narrow sidebar pane.
     pub external_spawn_popup: bool,
+    pub(crate) exit_fallback: fallback::ExitFallback,
     pub bottom_tab: BottomTab,
     pub git: crate::git::GitData,
     pub pane_states: PaneRuntimeMap,
@@ -157,6 +159,7 @@ impl AppState {
             icons: StatusIcons::default(),
             persistent_agent_highlight: false,
             external_spawn_popup: false,
+            exit_fallback: fallback::ExitFallback::default(),
             bottom_tab: BottomTab::Activity,
             git: crate::git::GitData::default(),
             pane_states: PaneRuntimeMap::new(),

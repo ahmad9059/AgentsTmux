@@ -399,7 +399,7 @@ fn clear_agent_pane_state(pane_id: &str) {
     let _ = std::fs::remove_file(log_path);
 }
 
-fn is_shell_command(command: &str) -> bool {
+pub(crate) fn is_shell_command(command: &str) -> bool {
     const SHELL_COMMANDS: &[&str] = &[
         "ash",
         "bash",

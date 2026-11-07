@@ -86,7 +86,7 @@ pub fn adopt(pane: &str, host: &str, owner: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn content_pane(host: &str) -> Result<String, String> {
+pub fn content_pane(host: &str) -> Result<String, String> {
     let panes = run_tmux_capture(&["list-panes", "-t", host, "-F", "#{pane_id}|#{@pane_role}"])?;
     let content: Vec<_> = panes
         .lines()

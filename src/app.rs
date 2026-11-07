@@ -90,6 +90,7 @@ pub fn run(
             let previous_focused_pane_id = state.focus_state.focused_pane_id.clone();
             width_guard.tick(&state.tmux_pane);
             let is_window_active = state.refresh();
+            state.follow_exited_agent();
             if state.focus_state.focused_pane_id != previous_focused_pane_id {
                 render::refresh_git_for_focused_pane(&mut state);
             }
