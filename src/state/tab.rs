@@ -206,6 +206,38 @@ mod tests {
         state
     }
 
+    // ─── bottom tab click regions ─────────────────────────────────
+
+    #[test]
+    fn clicking_usage_label_selects_usage_tab() {
+        // Title row layout: `╭ Usage │ Git ...`, so the labels sit at
+        // cols 2..=6 and 10..=12.
+        for col in 2..=6 {
+            let mut state = AppState::new("%99".into());
+            state.bottom_tab = BottomTab::GitStatus;
+            state.handle_bottom_tab_click(col);
+            assert_eq!(state.bottom_tab, BottomTab::Usage, "col {col}");
+        }
+    }
+
+    #[test]
+    fn clicking_git_label_selects_git_tab() {
+        for col in 10..=12 {
+            let mut state = AppState::new("%99".into());
+            state.bottom_tab = BottomTab::Usage;
+            state.handle_bottom_tab_click(col);
+            assert_eq!(state.bottom_tab, BottomTab::GitStatus, "col {col}");
+        }
+    }
+
+    #[test]
+    fn clicking_the_separator_keeps_the_tab() {
+        let mut state = AppState::new("%99".into());
+        state.bottom_tab = BottomTab::Usage;
+        state.handle_bottom_tab_click(8); // the │ between the labels
+        assert_eq!(state.bottom_tab, BottomTab::Usage);
+    }
+
     // ─── focused_pane_is_agent ───────────────────────────────────
 
     #[test]

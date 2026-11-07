@@ -40,6 +40,9 @@ impl UsageState {
         if pane.agent == crate::tmux::AgentType::Unknown {
             return None;
         }
+        let command = state
+            .pane_state(&pane.pane_id)
+            .and_then(|runtime| runtime.command.clone());
         Some(UsageTarget {
             key: format!(
                 "{}|{:?}|{}",
@@ -48,7 +51,7 @@ impl UsageState {
                 pane.session_id.as_deref().unwrap_or("")
             ),
             agent: pane.agent.clone(),
-            is_pi: is_pi_pane(pane),
+            is_pi: is_pi_pane(pane, command.as_deref()),
             session_id: pane.session_id.clone(),
             cwd: pane.path.clone(),
         })
@@ -87,17 +90,22 @@ impl UsageState {
 
 /// Pi reuses the Claude hook adapter, so its panes look like Claude panes.
 /// The bundled extension prefixes user prompts and assistant previews with
-/// `[Pi]`, and `pi` is the pane's foreground command while it runs.
-fn is_pi_pane(pane: &crate::tmux::PaneInfo) -> bool {
-    pane.prompt.starts_with("[Pi]")
-        || pane.current_command == "pi"
-        || pane.current_command.ends_with("/pi")
-        || pane
-            .current_command
-            .split_whitespace()
-            .next()
-            .and_then(|cmd| cmd.rsplit('/').next())
-            .is_some_and(|cmd| cmd == "pi")
+/// `[Pi]`; when the preview is empty the pane process still names `pi` (or
+/// a `node …/pi` wrapper, which is why the runtime command is checked too).
+fn is_pi_pane(pane: &crate::tmux::PaneInfo, runtime_command: Option<&str>) -> bool {
+    if pane.prompt.starts_with("[Pi]") {
+        return true;
+    }
+    if command_is_pi(&pane.current_command) {
+        return true;
+    }
+    runtime_command.is_some_and(command_is_pi)
+}
+
+fn command_is_pi(command: &str) -> bool {
+    command
+        .split_whitespace()
+        .any(|word| word.rsplit('/').next() == Some("pi"))
 }
 
 #[cfg(test)]
@@ -216,20 +224,33 @@ mod tests {
     fn pi_detected_from_prompt_prefix() {
         let mut pane = test_pane("%1", AgentType::Claude);
         pane.prompt = "[Pi] do the thing".into();
-        assert!(is_pi_pane(&pane));
+        assert!(is_pi_pane(&pane, None));
     }
 
     #[test]
     fn pi_detected_from_command() {
         let mut pane = test_pane("%1", AgentType::Claude);
         pane.current_command = "/home/me/.local/bin/pi".into();
-        assert!(is_pi_pane(&pane));
+        assert!(is_pi_pane(&pane, None));
         pane.current_command = "pi --continue".into();
-        assert!(is_pi_pane(&pane));
+        assert!(is_pi_pane(&pane, None));
+    }
+
+    #[test]
+    fn pi_detected_from_the_node_wrapper() {
+        // Pi ships as a node script, so tmux reports `node` as the pane's
+        // foreground command; the scanned process tree still names `pi`.
+        let pane = test_pane("%1", AgentType::Claude);
+        assert!(is_pi_pane(
+            &pane,
+            Some("node /home/me/.pi/agent/bin/pi --continue")
+        ));
     }
 
     #[test]
     fn claude_pane_is_not_pi() {
-        assert!(!is_pi_pane(&test_pane("%1", AgentType::Claude)));
+        let mut pane = test_pane("%1", AgentType::Claude);
+        pane.current_command = "node".into();
+        assert!(!is_pi_pane(&pane, Some("node /usr/lib/claude/index.js")));
     }
 }

@@ -32,10 +32,11 @@ use crate::tmux::AgentType;
 pub const CLAUDE_USAGE_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 pub const CODEX_USAGE_URL: &str = "https://chatgpt.com/backend-api/wham/usage";
 
-/// How long a successful provider fetch is reused before going back to the
-/// network. Short enough to feel live, long enough not to hammer the APIs
-/// when several agents share one account.
-pub const PROVIDER_CACHE_TTL: Duration = Duration::from_secs(20);
+/// How long a provider fetch is reused before going back to the network.
+/// Matches the visible-tab refresh interval, so a panel you are looking at
+/// really does re-check the provider every tick; it still stops two agents on
+/// the same account from double-fetching when you switch between them.
+pub const PROVIDER_CACHE_TTL: Duration = Duration::from_secs(10);
 
 /// One rate-limit window (5-hour session, weekly, …).
 #[derive(Debug, Clone, PartialEq)]

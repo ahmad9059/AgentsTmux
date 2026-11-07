@@ -175,10 +175,11 @@ fn meter(percent: f32, cells: usize) -> String {
     if cells == 0 {
         return String::new();
     }
+    // Floor rather than round: 95% must not read as a full bar.
     let filled = if percent <= 0.0 {
         0
     } else {
-        ((percent / 100.0) * cells as f32).round().max(1.0) as usize
+        ((percent / 100.0) * cells as f32).floor().max(1.0) as usize
     }
     .min(cells);
     let mut out = String::with_capacity(cells * 3);
@@ -241,6 +242,8 @@ mod tests {
     fn meter_fills_proportionally() {
         assert_eq!(meter(0.0, 10), "░░░░░░░░░░");
         assert_eq!(meter(50.0, 10), "█████░░░░░");
+        assert_eq!(meter(95.0, 10), "█████████░");
+        assert_eq!(meter(99.9, 10), "█████████░");
         assert_eq!(meter(100.0, 10), "██████████");
     }
 
