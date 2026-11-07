@@ -2,6 +2,7 @@ pub mod capture;
 mod hook;
 mod integrate;
 mod label;
+pub mod new_agent;
 pub mod plugin_state;
 pub(crate) mod setup;
 pub(crate) mod shared_html;
@@ -23,6 +24,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "hook" => hook::cmd_hook(rest),
         "toggle" => toggle::cmd_toggle(rest),
         "toggle-all" => toggle::cmd_toggle_all(rest),
+        "new-agent" => new_agent::cmd_new_agent(rest),
         "auto-create" => toggle::cmd_auto_create(rest),
         "auto-close" => toggle::cmd_auto_close(rest),
         "set-status" => cmd_set_status(rest),

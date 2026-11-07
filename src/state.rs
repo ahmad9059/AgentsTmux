@@ -63,6 +63,9 @@ pub struct AppState {
     pub icons: StatusIcons,
     /// Keep the visible agent highlighted while typing in its content pane.
     pub persistent_agent_highlight: bool,
+    /// Open the new-agent form as a tmux popup centered over the window
+    /// instead of inside the narrow sidebar pane.
+    pub external_spawn_popup: bool,
     pub bottom_tab: BottomTab,
     pub git: crate::git::GitData,
     pub pane_states: PaneRuntimeMap,
@@ -153,6 +156,7 @@ impl AppState {
             theme: ColorTheme::default(),
             icons: StatusIcons::default(),
             persistent_agent_highlight: false,
+            external_spawn_popup: false,
             bottom_tab: BottomTab::Activity,
             git: crate::git::GitData::default(),
             pane_states: PaneRuntimeMap::new(),

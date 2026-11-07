@@ -108,7 +108,18 @@ const EXP_MODE_LABEL_Y: u16 = 7;
 const EXP_MODE_VALUE_Y: u16 = 8;
 const EXP_ERROR_Y: u16 = 10;
 
+/// Draw the new-agent form filling `frame`. Used by `agents-tmux new-agent`,
+/// which runs inside a tmux popup centered over the whole window.
+pub fn render_new_agent_form(frame: &mut Frame, state: &mut AppState) {
+    let area = frame.area();
+    render_spawn_form(frame, state, area, true);
+}
+
 pub(super) fn render_spawn_input_popup(frame: &mut Frame, state: &mut AppState, area: Rect) {
+    render_spawn_form(frame, state, area, false);
+}
+
+fn render_spawn_form(frame: &mut Frame, state: &mut AppState, area: Rect, full: bool) {
     let PopupState::SpawnInput {
         input,
         agent_idx,
@@ -141,6 +152,7 @@ pub(super) fn render_spawn_input_popup(frame: &mut Frame, state: &mut AppState, 
     let error_rows: u16 = if error.is_some() { 1 } else { 0 };
     let popup_height = content_rows + error_rows + POPUP_BORDER_ROWS;
     let popup_rect = match anchor_y {
+        _ if full => area,
         Some(y) => anchor_below(area, y, popup_width, popup_height),
         None => center_popup(area, popup_width, popup_height),
     };
@@ -198,8 +210,15 @@ pub(super) fn render_spawn_input_popup(frame: &mut Frame, state: &mut AppState, 
     if field == SpawnField::Path {
         task_spans.push(Span::styled("█", Style::default().fg(theme.accent)));
     }
-    let agent_value = truncate_to_width(agent, content_width);
-    let mode_value = truncate_to_width(mode, content_width);
+    let choice = |value: &str, target: SpawnField| {
+        if full && field == target {
+            format!("‹ {value} ›")
+        } else {
+            value.to_string()
+        }
+    };
+    let agent_value = truncate_to_width(&choice(agent, SpawnField::Agent), content_width);
+    let mode_value = truncate_to_width(&choice(mode, SpawnField::Mode), content_width);
     let error_spans = error.as_ref().map(|err| {
         vec![Span::styled(
             truncate_to_width(err, content_width),
@@ -251,6 +270,19 @@ pub(super) fn render_spawn_input_popup(frame: &mut Frame, state: &mut AppState, 
         );
         if let Some(err) = error_spans {
             render_at(frame, EXP_ERROR_Y, err);
+        }
+        if full {
+            render_at(
+                frame,
+                inner.height.saturating_sub(1),
+                vec![Span::styled(
+                    truncate_to_width(
+                        "Enter start · Tab next field · ←/→ change · Esc cancel",
+                        content_width,
+                    ),
+                    Style::default().fg(theme.text_muted),
+                )],
+            );
         }
     }
 }

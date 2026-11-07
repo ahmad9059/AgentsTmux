@@ -79,9 +79,10 @@ pub fn resolve_pane_git_info(path: &str) -> PaneGitInfo {
 }
 
 /// Group all panes across all sessions by repo root.
-/// Returns groups sorted alphabetically by display name (case-insensitive),
-/// so the order is stable regardless of which pane is encountered first.
-/// Within a repository, panes retain creation order across tmux pane swaps.
+/// Groups appear in creation order: a folder opened later goes below the
+/// ones before it, and within a folder each new agent goes below the
+/// previous ones. The order follows tmux pane ids, which only ever increase
+/// and survive pane moves and swaps, so rows never jump around.
 pub fn group_panes_by_repo(sessions: &[crate::tmux::SessionInfo]) -> Vec<RepoGroup> {
     let mut groups: IndexMap<String, RepoGroup> = IndexMap::new();
     let mut git_cache: std::collections::HashMap<String, PaneGitInfo> =
@@ -144,17 +145,25 @@ pub fn group_panes_by_repo(sessions: &[crate::tmux::SessionInfo]) -> Vec<RepoGro
 
     let mut result: Vec<RepoGroup> = groups.into_values().collect();
     for group in &mut result {
-        // Pane IDs are monotonically allocated by tmux and survive moves and
-        // swaps. Session/window traversal order does not survive those moves.
-        group.panes.sort_by_key(|(pane, _)| {
-            pane.pane_id
-                .strip_prefix('%')
-                .and_then(|id| id.parse::<u64>().ok())
-                .unwrap_or(u64::MAX)
-        });
+        // Session/window traversal order does not survive pane moves.
+        group
+            .panes
+            .sort_by_key(|(pane, _)| pane_creation_rank(&pane.pane_id));
     }
-    result.sort_by_key(|a| a.name.to_lowercase());
+    result.sort_by_key(|group| {
+        group
+            .panes
+            .first()
+            .map_or(u64::MAX, |(pane, _)| pane_creation_rank(&pane.pane_id))
+    });
     result
+}
+
+fn pane_creation_rank(pane_id: &str) -> u64 {
+    pane_id
+        .strip_prefix('%')
+        .and_then(|id| id.parse::<u64>().ok())
+        .unwrap_or(u64::MAX)
 }
 
 /// Resolve a possibly-relative git path to an absolute canonical path.
@@ -439,23 +448,47 @@ mod tests {
     }
 
     #[test]
-    fn group_panes_sorted_by_name_case_insensitive() {
-        // Groups should be sorted alphabetically regardless of encounter order
-        let pane1 = test_pane("%1", "/tmp/zzz");
-        let pane2 = test_pane("%2", "/tmp/Aaa");
-        let pane3 = test_pane("%3", "/tmp/mmm");
-        let pane4 = test_pane("%4", "/tmp/zzz");
-
+    fn groups_follow_creation_order_not_alphabetical_order() {
         let sessions = vec![test_session(vec![test_window(
-            vec![pane1, pane2, pane3, pane4],
+            vec![
+                test_pane("%4", "/tmp/zzz"),
+                test_pane("%2", "/tmp/Aaa"),
+                test_pane("%3", "/tmp/mmm"),
+                test_pane("%1", "/tmp/zzz"),
+            ],
             true,
         )])];
         let groups = group_panes_by_repo(&sessions);
 
-        assert_eq!(groups.len(), 3);
-        assert_eq!(groups[0].name, "Aaa");
-        assert_eq!(groups[1].name, "mmm");
-        assert_eq!(groups[2].name, "zzz");
-        assert_eq!(groups[2].panes.len(), 2, "zzz should have 2 panes");
+        let names: Vec<_> = groups.iter().map(|g| g.name.as_str()).collect();
+        assert_eq!(names, ["zzz", "Aaa", "mmm"]);
+        let zzz: Vec<_> = groups[0]
+            .panes
+            .iter()
+            .map(|(p, _)| p.pane_id.as_str())
+            .collect();
+        assert_eq!(zzz, ["%1", "%4"], "agents in a folder keep creation order");
+    }
+
+    #[test]
+    fn a_new_folder_and_a_new_agent_both_go_to_the_bottom() {
+        let before = vec![test_session(vec![test_window(
+            vec![test_pane("%1", "/tmp/b"), test_pane("%2", "/tmp/a")],
+            true,
+        )])];
+        let after = vec![test_session(vec![test_window(
+            vec![
+                test_pane("%1", "/tmp/b"),
+                test_pane("%2", "/tmp/a"),
+                test_pane("%3", "/tmp/c"),
+                test_pane("%4", "/tmp/b"),
+            ],
+            true,
+        )])];
+        assert_eq!(group_panes_by_repo(&before).len(), 2);
+        let groups = group_panes_by_repo(&after);
+        let names: Vec<_> = groups.iter().map(|g| g.name.as_str()).collect();
+        assert_eq!(names, ["b", "a", "c"], "new folder c is last");
+        assert_eq!(groups[0].panes.last().unwrap().0.pane_id, "%4");
     }
 }

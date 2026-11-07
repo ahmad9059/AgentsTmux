@@ -253,7 +253,7 @@ impl AppState {
             .find(|t| point_in_rect(row, col, t.rect))
             .map(|t| (t.repo_name.clone(), t.repo_root.clone(), t.rect.y))
         {
-            self.open_spawn_input_for_repo(repo_name, repo_root, Some(anchor_y));
+            self.start_spawn_flow(repo_name, repo_root, Some(anchor_y));
             return;
         }
 

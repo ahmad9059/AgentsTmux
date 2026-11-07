@@ -5,7 +5,7 @@ One tmux window for your coding agents. Keep a persistent sidebar on the left, s
 ## Features
 
 - **One Agents tab:** new agents use a detached holding session instead of adding tabs to your main session. Selecting an agent swaps its live pane into view; its process, conversation, scrollback, and worktree stay intact.
-- **Stable ordering:** agents stay in creation order within each project. New agents appear at the bottom instead of jumping around during swaps.
+- **Stable ordering:** folders and the agents in them stay in creation order. A new folder or agent appears at the bottom instead of jumping around during swaps.
 - **Reliable selection:** the visible agent stays highlighted while you type. Keyboard navigation has its own cursor, tracked by pane identity rather than an unstable row number.
 - **Compact sidebar:** hide prompt/reply previews and the idle placeholder; retain status, branch, task progress, and activity.
 - **Useful notifications:** short, single-line completion, question, permission, and error alerts. Session selection does not replay old completions. On Hyprland, alerts are suppressed when the source tmux window is visible on an active workspace.
@@ -71,7 +71,8 @@ For custom plugin locations, set `AGENTSTMUX_HOOK` to the absolute path of `hook
 - **Prefix + e:** toggle the sidebar in the current window.
 - **Prefix + E:** toggle sidebars across windows.
 - **Click an agent**, or navigate with **j/k** or the arrow keys and press **Enter**, to show it in the right pane.
-- Use the project **+** button to start an agent. The folder field is prefilled with the current folder; edit it (or press **Ctrl+U** to clear it) to open the agent elsewhere. `~` and relative paths work, and the folder must already exist.
+- Folders and agents are listed in creation order: a new folder goes to the bottom of the sidebar, and a new agent goes to the bottom of its folder.
+- Use the project **+** button to start an agent. It opens a form in a popup centered over the window (Tab or ↑/↓ to move, ←/→ to change agent and mode, Esc to cancel). The folder field is prefilled with the current folder; edit it (or press **Ctrl+U** to clear it) to open the agent elsewhere. `~` and relative paths work, and the folder must already exist.
 - `agents-tmux spawn [folder]` does the same from a shell.
 - Use an agent's **×** button for removal options. Removing an agent does not close the shared host window.
 

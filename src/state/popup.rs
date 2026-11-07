@@ -226,6 +226,46 @@ impl AppState {
         };
     }
 
+    /// Begin the new-agent flow: a tmux popup centered over the window when
+    /// available, otherwise the small in-sidebar form.
+    pub fn start_spawn_flow(
+        &mut self,
+        repo_name: String,
+        repo_root: String,
+        anchor_y: Option<u16>,
+    ) {
+        if self.external_spawn_popup
+            && crate::cli::new_agent::launch(&self.tmux_pane, &repo_name, &repo_root).is_ok()
+        {
+            return;
+        }
+        self.open_spawn_input_for_repo(repo_name, repo_root, anchor_y);
+    }
+
+    /// Handle one key while the new-agent form is open. Returns whether the
+    /// key was consumed.
+    pub fn handle_spawn_input_key(&mut self, key: crossterm::event::KeyEvent) -> bool {
+        use crossterm::event::{KeyCode, KeyModifiers};
+        if !self.is_spawn_input_open() {
+            return false;
+        }
+        let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
+        match key.code {
+            KeyCode::Esc => self.close_spawn_input(),
+            KeyCode::Char('c') if ctrl => self.close_spawn_input(),
+            KeyCode::Enter => self.confirm_spawn_input(),
+            KeyCode::Tab | KeyCode::Down => self.spawn_input_next_field(),
+            KeyCode::BackTab | KeyCode::Up => self.spawn_input_prev_field(),
+            KeyCode::Left => self.spawn_input_cycle(-1),
+            KeyCode::Right => self.spawn_input_cycle(1),
+            KeyCode::Backspace => self.spawn_input_pop_char(),
+            KeyCode::Char('u') if ctrl => self.spawn_input_clear(),
+            KeyCode::Char(c) if !ctrl => self.spawn_input_push_char(c),
+            _ => {}
+        }
+        true
+    }
+
     pub fn open_spawn_input_from_selection(&mut self) {
         let Some(pane) = self.selected_pane() else {
             self.set_flash("spawn: no pane selected");
@@ -255,7 +295,7 @@ impl AppState {
             .iter()
             .find(|t| t.repo_name == name)
             .map(|t| t.rect.y);
-        self.open_spawn_input_for_repo(name, root, anchor);
+        self.start_spawn_flow(name, root, anchor);
     }
 
     pub fn close_spawn_input(&mut self) {
@@ -836,6 +876,51 @@ mod tests {
         if let PopupState::SpawnInput { input, .. } = &state.popup {
             assert_eq!(input, "hi");
         }
+    }
+
+    #[test]
+    fn handle_spawn_input_key_edits_navigates_and_cancels() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        let key = |code| KeyEvent::new(code, KeyModifiers::NONE);
+        let ctrl = |c| KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL);
+
+        let mut state = AppState::new("%99".into());
+        assert!(
+            !state.handle_spawn_input_key(key(KeyCode::Enter)),
+            "closed form ignores keys"
+        );
+
+        state.open_spawn_input_for_repo("alpha".into(), "/tmp/alpha".into(), None);
+        assert!(state.handle_spawn_input_key(ctrl('u')));
+        for c in "/x".chars() {
+            state.handle_spawn_input_key(key(KeyCode::Char(c)));
+        }
+        state.handle_spawn_input_key(ctrl('c'));
+        assert!(!state.is_spawn_input_open(), "Ctrl+C cancels");
+
+        state.open_spawn_input_for_repo("alpha".into(), "/tmp/alpha".into(), None);
+        state.handle_spawn_input_key(ctrl('u'));
+        state.handle_spawn_input_key(key(KeyCode::Char('/')));
+        state.handle_spawn_input_key(ctrl('x'));
+        match &state.popup {
+            PopupState::SpawnInput { input, .. } => {
+                assert_eq!(input, "/", "Ctrl chords never type")
+            }
+            _ => panic!("form should stay open"),
+        }
+        state.handle_spawn_input_key(key(KeyCode::Tab));
+        state.handle_spawn_input_key(key(KeyCode::Right));
+        match &state.popup {
+            PopupState::SpawnInput {
+                agent_idx, field, ..
+            } => {
+                assert_eq!(*field, SpawnField::Agent);
+                assert_eq!(*agent_idx, 1);
+            }
+            _ => panic!("form should stay open"),
+        }
+        state.handle_spawn_input_key(key(KeyCode::Esc));
+        assert!(!state.is_spawn_input_open());
     }
 
     #[test]

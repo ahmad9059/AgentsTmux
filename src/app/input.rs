@@ -67,21 +67,7 @@ pub(super) fn handle_key_event(
         }
         return true;
     }
-    if state.is_spawn_input_open() {
-        match key.code {
-            KeyCode::Esc => state.close_spawn_input(),
-            KeyCode::Enter => state.confirm_spawn_input(),
-            KeyCode::Tab | KeyCode::Down => state.spawn_input_next_field(),
-            KeyCode::BackTab | KeyCode::Up => state.spawn_input_prev_field(),
-            KeyCode::Left => state.spawn_input_cycle(-1),
-            KeyCode::Right => state.spawn_input_cycle(1),
-            KeyCode::Backspace => state.spawn_input_pop_char(),
-            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                state.spawn_input_clear()
-            }
-            KeyCode::Char(c) => state.spawn_input_push_char(c),
-            _ => {}
-        }
+    if state.handle_spawn_input_key(key) {
         return true;
     }
     if state.is_remove_confirm_open() {
