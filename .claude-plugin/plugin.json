@@ -1,0 +1,12 @@
+{
+  "name": "agents-tmux",
+  "version": "0.13.0",
+  "description": "Monitor Claude Code agents across tmux panes in a real-time sidebar TUI",
+  "author": {
+    "name": "ahmad9059",
+    "url": "https://github.com/ahmad9059"
+  },
+  "repository": "https://github.com/ahmad9059/AgentsTmux",
+  "license": "MIT",
+  "keywords": ["tmux", "agent", "monitoring", "tui", "sidebar"]
+}

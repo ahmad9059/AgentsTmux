@@ -1,0 +1,13 @@
+{
+  "name": "agentstmux",
+  "owner": {
+    "name": "ahmad9059"
+  },
+  "plugins": [
+    {
+      "name": "agents-tmux",
+      "source": "./",
+      "description": "Monitor Claude Code agents across tmux panes in a real-time sidebar TUI"
+    }
+  ]
+}
