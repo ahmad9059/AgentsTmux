@@ -18,6 +18,9 @@ pub(super) fn init_state(tmux_pane: String) -> AppState {
     state.external_spawn_popup = true;
     state.bottom_panel_height = ui::bottom_panel_height_from_tmux();
     state.pet_enabled = ui::pet_enabled_from_tmux();
+    // The status filter bar is gone, so a filter saved by an older version
+    // would hide agents with no way to see why. Always start unfiltered.
+    let _ = crate::tmux::run_tmux(&["set-option", "-gu", crate::tmux::SIDEBAR_FILTER]);
     state.global.load_from_tmux();
     state.refresh();
 

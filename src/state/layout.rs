@@ -181,7 +181,7 @@ impl AppState {
 
     /// Handle mouse click in agents panel. Maps screen row to agent row
     /// via line_to_row (adjusted for scroll offset) and activates that pane.
-    /// Row 0 is the fixed filter bar, row 1+ maps to the scrollable agent list.
+    /// Row 0 is the fixed header, row 1+ maps to the scrollable agent list.
     pub fn handle_mouse_click(&mut self, row: u16, col: u16) {
         if self.is_notices_popup_open() {
             if let Some(area) = self.notices_popup_area()
@@ -236,10 +236,6 @@ impl AppState {
         }
 
         if row == 0 {
-            self.handle_filter_click(col);
-            return;
-        }
-        if row == 1 {
             self.handle_secondary_header_click(col);
             return;
         }
@@ -269,7 +265,7 @@ impl AppState {
             return;
         }
 
-        let line_index = (row as usize - 2) + self.scrolls.panes.offset;
+        let line_index = (row as usize - 1) + self.scrolls.panes.offset;
         if let Some(Some(agent_row)) = self.layout.line_to_row.get(line_index) {
             self.global.selected_pane_row = *agent_row;
             self.global.queue_cursor_save();

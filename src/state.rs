@@ -1240,36 +1240,12 @@ mod tests {
         state.layout.line_to_row = vec![None, Some(0), Some(1)];
         state.scrolls.panes.offset = 0;
 
-        // row 0 = filter bar, row 1 = secondary header, row 2+ = agent list rows
-        state.handle_mouse_click(3, 5); // row 3 → line_index = (3-2) = 1 → agent row 0
+        // row 0 = header, row 1+ = agent list rows
+        state.handle_mouse_click(2, 5); // row 2 → line_index = (2-1) = 1 → agent row 0
         assert_eq!(state.global.selected_pane_row, 0);
 
-        state.handle_mouse_click(4, 5); // row 4 → line_index = (4-2) = 2 → agent row 1
+        state.handle_mouse_click(3, 5); // row 3 → line_index = (3-1) = 2 → agent row 1
         assert_eq!(state.global.selected_pane_row, 1);
-    }
-
-    #[test]
-    fn mouse_click_on_filter_bar_changes_filter() {
-        let mut state = AppState::new("%99".into());
-        state.layout.pane_row_targets = vec![RowTarget {
-            pane_id: "%1".into(),
-        }];
-        state.layout.line_to_row = vec![None, Some(0)];
-        state.global.selected_pane_row = 0;
-        state.global.status_filter = StatusFilter::All;
-
-        // Click on "All" (x=1..3) should keep All
-        reset_filter_debounce(&mut state);
-        state.handle_mouse_click(0, 1);
-        assert_eq!(state.global.status_filter, StatusFilter::All);
-
-        // Click on Running icon area (x=6..) should switch to Running
-        reset_filter_debounce(&mut state);
-        state.handle_mouse_click(0, 6);
-        assert_eq!(state.global.status_filter, StatusFilter::Running);
-
-        // agent selection unchanged
-        assert_eq!(state.global.selected_pane_row, 0);
     }
 
     #[test]
@@ -1289,10 +1265,10 @@ mod tests {
         ];
         state.layout.repo_button_col = Some(20);
 
-        state.handle_mouse_click(1, 19);
+        state.handle_mouse_click(0, 19);
         assert!(!state.is_repo_popup_open());
 
-        state.handle_mouse_click(1, 20);
+        state.handle_mouse_click(0, 20);
         assert!(state.is_repo_popup_open());
     }
 
@@ -1378,8 +1354,8 @@ mod tests {
         state.layout.line_to_row = vec![None, Some(0), Some(0), None, Some(1)];
         state.scrolls.panes.offset = 2;
 
-        // row 4 → line_index = (4-2) + 2 = 4 → agent row 1
-        state.handle_mouse_click(4, 5);
+        // row 3 → line_index = (3-1) + 2 = 4 → agent row 1
+        state.handle_mouse_click(3, 5);
         assert_eq!(state.global.selected_pane_row, 1);
     }
 

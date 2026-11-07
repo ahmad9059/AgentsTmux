@@ -141,11 +141,6 @@ pub(super) fn handle_key_event(
                 state.activate_selected_pane();
             }
         }
-        KeyCode::Tab => {
-            state.global.status_filter = state.global.status_filter.next();
-            state.global.save_filter();
-            state.rebuild_row_targets();
-        }
         KeyCode::BackTab => {
             state.next_bottom_tab();
             git_tab_active.store(state.bottom_tab == BottomTab::GitStatus, Ordering::Relaxed);
@@ -177,8 +172,6 @@ fn pane_nav_up(state: &mut AppState) {
         Focus::Panes => {
             if state.move_pane_selection(-1) {
                 state.global.queue_cursor_save();
-            } else {
-                state.focus_state.focus = Focus::Filter;
             }
         }
         Focus::ActivityLog => {
