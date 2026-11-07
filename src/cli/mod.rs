@@ -23,6 +23,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "hook" => hook::cmd_hook(rest),
         "toggle" => toggle::cmd_toggle(rest),
         "toggle-all" => toggle::cmd_toggle_all(rest),
+        "auto-create" => toggle::cmd_auto_create(rest),
         "auto-close" => toggle::cmd_auto_close(rest),
         "set-status" => cmd_set_status(rest),
         "spawn" => spawn::cmd_spawn(rest),

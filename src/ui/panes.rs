@@ -147,10 +147,7 @@ pub(super) fn render_spawn_input_popup(frame: &mut Frame, state: &mut AppState, 
     state.popup.set_spawn_input_area(Some(popup_rect));
 
     frame.render_widget(Clear, popup_rect);
-    let title_trunc = truncate_to_width(
-        " Spawn worktree ",
-        popup_rect.width.saturating_sub(2) as usize,
-    );
+    let title_trunc = truncate_to_width(" New agent ", popup_rect.width.saturating_sub(2) as usize);
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -197,8 +194,8 @@ pub(super) fn render_spawn_input_popup(frame: &mut Frame, state: &mut AppState, 
     let content_width = inner.width.saturating_sub(2) as usize;
     let visible_input = tail_fit(&input, content_width.saturating_sub(1));
     let mut task_spans: Vec<Span<'_>> =
-        vec![Span::styled(visible_input, value_style(SpawnField::Task))];
-    if field == SpawnField::Task {
+        vec![Span::styled(visible_input, value_style(SpawnField::Path))];
+    if field == SpawnField::Path {
         task_spans.push(Span::styled("█", Style::default().fg(theme.accent)));
     }
     let agent_value = truncate_to_width(agent, content_width);
@@ -229,7 +226,7 @@ pub(super) fn render_spawn_input_popup(frame: &mut Frame, state: &mut AppState, 
         render_at(
             frame,
             EXP_TASK_LABEL_Y,
-            vec![Span::styled("NAME", label_style(SpawnField::Task))],
+            vec![Span::styled("FOLDER", label_style(SpawnField::Path))],
         );
         render_at(frame, EXP_TASK_VALUE_Y, task_spans);
         render_at(
@@ -287,8 +284,13 @@ fn tail_fit(text: &str, max_width: usize) -> String {
 }
 
 pub(super) fn render_remove_confirm_popup(frame: &mut Frame, state: &mut AppState, area: Rect) {
-    let (branch, error) = match &state.popup {
-        PopupState::RemoveConfirm { branch, error, .. } => (branch.clone(), error.clone()),
+    let (branch, has_worktree, error) = match &state.popup {
+        PopupState::RemoveConfirm {
+            branch,
+            has_worktree,
+            error,
+            ..
+        } => (branch.clone(), *has_worktree, error.clone()),
         _ => return,
     };
     let theme = &state.theme;
@@ -296,7 +298,8 @@ pub(super) fn render_remove_confirm_popup(frame: &mut Frame, state: &mut AppStat
     // Narrow-friendly: put the branch in the title, keep option rows
     // short enough to fit in ~16 columns. Reserve an extra row when
     // an inline error is present.
-    let popup_height: u16 = if error.is_some() { 7 } else { 6 };
+    let option_rows: u16 = if has_worktree { 3 } else { 2 };
+    let popup_height: u16 = option_rows + 2 + if error.is_some() { 2 } else { 0 };
     let popup_rect = center_popup(area, area.width.min(28), popup_height);
     state.popup.set_remove_confirm_area(Some(popup_rect));
 
@@ -322,26 +325,40 @@ pub(super) fn render_remove_confirm_popup(frame: &mut Frame, state: &mut AppStat
         }
     };
 
+    if has_worktree {
+        render_row(
+            frame,
+            0,
+            "[y] remove worktree",
+            Style::default().fg(theme.status_error),
+        );
+        render_row(
+            frame,
+            1,
+            "[c] close window only",
+            Style::default().fg(theme.text_active),
+        );
+    } else {
+        render_row(
+            frame,
+            0,
+            "[y] close agent window",
+            Style::default().fg(theme.status_error),
+        );
+    }
     render_row(
         frame,
-        0,
-        "[y] remove worktree",
-        Style::default().fg(theme.status_error),
-    );
-    render_row(
-        frame,
-        1,
-        "[c] close window only",
-        Style::default().fg(theme.text_active),
-    );
-    render_row(
-        frame,
-        2,
+        option_rows - 1,
         "[n] cancel",
         Style::default().fg(theme.text_muted),
     );
     if let Some(err) = error {
-        render_row(frame, 4, &err, Style::default().fg(theme.status_error));
+        render_row(
+            frame,
+            option_rows + 1,
+            &err,
+            Style::default().fg(theme.status_error),
+        );
     }
 }
 

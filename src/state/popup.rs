@@ -1,11 +1,11 @@
 use super::AppState;
 
 /// Focus target inside the spawn input popup. Tab / Shift+Tab / arrow
-/// keys cycle through these in order; only `Task` accepts text input.
+/// keys cycle through these in order; only `Path` accepts text input.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SpawnField {
     #[default]
-    Task,
+    Path,
     Agent,
     Mode,
 }
@@ -13,16 +13,16 @@ pub enum SpawnField {
 impl SpawnField {
     pub fn next(self) -> Self {
         match self {
-            Self::Task => Self::Agent,
+            Self::Path => Self::Agent,
             Self::Agent => Self::Mode,
-            Self::Mode => Self::Task,
+            Self::Mode => Self::Path,
         }
     }
 
     pub fn prev(self) -> Self {
         match self {
-            Self::Task => Self::Mode,
-            Self::Agent => Self::Task,
+            Self::Path => Self::Mode,
+            Self::Agent => Self::Path,
             Self::Mode => Self::Agent,
         }
     }
@@ -43,8 +43,8 @@ pub enum PopupState {
         area: Option<ratatui::layout::Rect>,
     },
     /// Modal text input shown when the user presses `n` (or clicks `+`)
-    /// to spawn a new worktree. `target_repo` / `target_repo_root` pin
-    /// the spawn target; `agent_idx` / `mode_idx` index into
+    /// to start a new agent. `target_repo` / `target_repo_root` name the
+    /// group and its default folder; `input` is the folder to open; `agent_idx` / `mode_idx` index into
     /// [`crate::worktree::AGENTS`] / [`crate::worktree::modes_for`] so
     /// arrow keys can cycle the user's agent and permission-mode picks.
     SpawnInput {
@@ -69,7 +69,10 @@ pub enum PopupState {
     /// is shown in the modal title.
     RemoveConfirm {
         pane_id: String,
+        /// Folder or worktree name shown in the modal title.
         branch: String,
+        /// Whether a git worktree (from an older version) is attached.
+        has_worktree: bool,
         error: Option<String>,
         area: Option<ratatui::layout::Rect>,
     },
@@ -211,12 +214,12 @@ impl AppState {
         anchor_y: Option<u16>,
     ) {
         self.popup = PopupState::SpawnInput {
-            input: String::new(),
+            input: repo_root.clone(),
             target_repo: repo_name,
             target_repo_root: repo_root,
             agent_idx: 0,
             mode_idx: 0,
-            field: SpawnField::Task,
+            field: SpawnField::Path,
             anchor_y,
             error: None,
             area: None,
@@ -229,6 +232,7 @@ impl AppState {
             return;
         };
         let pane_id = pane.pane_id.clone();
+        let pane_path = pane.path.clone();
         let Some(group) = self
             .repo_groups
             .iter()
@@ -237,14 +241,11 @@ impl AppState {
             self.set_flash("spawn: could not find repo group for selection");
             return;
         };
-        let Some(root) = group
+        let root = group
             .panes
             .iter()
             .find_map(|(_, git)| git.repo_root.clone())
-        else {
-            self.set_flash("spawn: selected pane is not in a git repo");
-            return;
-        };
+            .unwrap_or_else(|| pane_path.clone());
         let name = group.name.clone();
         // Anchor the popup directly below the repo header row so it
         // matches what the mouse `+` click flow does.
@@ -309,7 +310,7 @@ impl AppState {
                     *error = None;
                 }
             }
-            SpawnField::Task => {}
+            SpawnField::Path => {}
         }
     }
 
@@ -320,9 +321,23 @@ impl AppState {
             error,
             ..
         } = &mut self.popup
-            && *field == SpawnField::Task
+            && *field == SpawnField::Path
         {
             input.push(c);
+            *error = None;
+        }
+    }
+
+    pub fn spawn_input_clear(&mut self) {
+        if let PopupState::SpawnInput {
+            input,
+            field,
+            error,
+            ..
+        } = &mut self.popup
+            && *field == SpawnField::Path
+        {
+            input.clear();
             *error = None;
         }
     }
@@ -334,7 +349,7 @@ impl AppState {
             error,
             ..
         } = &mut self.popup
-            && *field == SpawnField::Task
+            && *field == SpawnField::Path
         {
             input.pop();
             *error = None;
@@ -369,11 +384,6 @@ impl AppState {
         else {
             return;
         };
-        let task_name = input.trim().to_string();
-        if task_name.is_empty() {
-            self.set_spawn_error("name is empty");
-            return;
-        }
         let agent = crate::worktree::AGENTS
             .get(*agent_idx)
             .copied()
@@ -385,6 +395,13 @@ impl AppState {
             .unwrap_or(crate::worktree::DEFAULT_MODE)
             .to_string();
         let repo_root = std::path::PathBuf::from(target_repo_root.clone());
+        let directory = match crate::worktree::resolve_directory(input, &repo_root) {
+            Ok(directory) => directory,
+            Err(e) => {
+                self.set_spawn_error(e);
+                return;
+            }
+        };
 
         let Some(session) = crate::tmux::pane_session_name(&self.tmux_pane) else {
             self.set_spawn_error("could not resolve tmux session");
@@ -393,7 +410,7 @@ impl AppState {
 
         let req = crate::worktree::SpawnRequest {
             repo_root,
-            task_name,
+            directory,
             session,
             agent,
             mode,
@@ -440,13 +457,20 @@ impl AppState {
             self.set_flash("remove: selected pane was not spawned by sidebar");
             return;
         }
-        let branch = std::path::Path::new(&markers.worktree_path)
+        let has_worktree = !markers.worktree_path.is_empty();
+        let label_source = if has_worktree {
+            &markers.worktree_path
+        } else {
+            &markers.from_repo
+        };
+        let branch = std::path::Path::new(label_source)
             .file_name()
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_default();
         self.popup = PopupState::RemoveConfirm {
             pane_id,
             branch,
+            has_worktree,
             error: None,
             area: None,
         };
@@ -502,11 +526,11 @@ mod tests {
 
     #[test]
     fn spawn_field_next_and_prev_cycle() {
-        assert_eq!(SpawnField::Task.next(), SpawnField::Agent);
+        assert_eq!(SpawnField::Path.next(), SpawnField::Agent);
         assert_eq!(SpawnField::Agent.next(), SpawnField::Mode);
-        assert_eq!(SpawnField::Mode.next(), SpawnField::Task);
-        assert_eq!(SpawnField::Task.prev(), SpawnField::Mode);
-        assert_eq!(SpawnField::Agent.prev(), SpawnField::Task);
+        assert_eq!(SpawnField::Mode.next(), SpawnField::Path);
+        assert_eq!(SpawnField::Path.prev(), SpawnField::Mode);
+        assert_eq!(SpawnField::Agent.prev(), SpawnField::Path);
         assert_eq!(SpawnField::Mode.prev(), SpawnField::Agent);
     }
 
@@ -686,12 +710,12 @@ mod tests {
             area,
         } = &state.popup
         {
-            assert!(input.is_empty());
+            assert_eq!(input, "/tmp/alpha", "the current folder is prefilled");
             assert_eq!(target_repo, "alpha");
             assert_eq!(target_repo_root, "/tmp/alpha");
             assert_eq!(*agent_idx, 0);
             assert_eq!(*mode_idx, 0);
-            assert_eq!(*field, SpawnField::Task);
+            assert_eq!(*field, SpawnField::Path);
             assert_eq!(*anchor_y, Some(7));
             assert!(error.is_none());
             assert!(area.is_none());
@@ -794,10 +818,11 @@ mod tests {
     }
 
     #[test]
-    fn spawn_input_push_pop_char_only_on_task_field() {
+    fn spawn_input_push_pop_char_only_on_path_field() {
         let mut state = AppState::new("%99".into());
         state.open_spawn_input_for_repo("alpha".into(), "/tmp/alpha".into(), None);
 
+        state.spawn_input_clear();
         state.spawn_input_push_char('h');
         state.spawn_input_push_char('i');
         if let PopupState::SpawnInput { input, .. } = &state.popup {
@@ -814,12 +839,12 @@ mod tests {
     }
 
     #[test]
-    fn confirm_spawn_input_empty_sets_error() {
+    fn confirm_spawn_input_with_a_missing_folder_sets_error() {
         let mut state = AppState::new("%99".into());
-        state.open_spawn_input_for_repo("alpha".into(), "/tmp/alpha".into(), None);
+        state.open_spawn_input_for_repo("alpha".into(), "/nonexistent/alpha".into(), None);
         state.confirm_spawn_input();
         if let PopupState::SpawnInput { error, .. } = &state.popup {
-            assert_eq!(error.as_deref(), Some("name is empty"));
+            assert_eq!(error.as_deref(), Some("not a folder: /nonexistent/alpha"));
         } else {
             panic!("popup must stay open on error");
         }
@@ -833,6 +858,7 @@ mod tests {
         state.popup = PopupState::RemoveConfirm {
             pane_id: "%1".into(),
             branch: "feature/x".into(),
+            has_worktree: true,
             error: None,
             area: Some(ratatui::layout::Rect::new(0, 0, 20, 5)),
         };

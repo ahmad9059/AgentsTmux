@@ -32,6 +32,7 @@ pub fn run(
 ) -> io::Result<()> {
     let mut state = setup::init_state(tmux_pane);
     let mut window_inactive_count: u32 = 0;
+    let mut width_guard = crate::tmux::sidebar_width::WidthGuard::default();
 
     let workers = workers::spawn(&state);
     let workers::Workers {
@@ -87,6 +88,7 @@ pub fn run(
         let sigusr1 = needs_refresh.swap(false, Ordering::Relaxed);
         if sigusr1 || last_refresh.elapsed() >= refresh_interval {
             let previous_focused_pane_id = state.focus_state.focused_pane_id.clone();
+            width_guard.tick(&state.tmux_pane);
             let is_window_active = state.refresh();
             if state.focus_state.focused_pane_id != previous_focused_pane_id {
                 render::refresh_git_for_focused_pane(&mut state);

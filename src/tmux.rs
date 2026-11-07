@@ -2,6 +2,7 @@ mod commands;
 mod options;
 mod panes;
 mod query;
+pub mod sidebar_width;
 mod types;
 pub mod workspace;
 

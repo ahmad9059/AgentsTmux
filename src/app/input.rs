@@ -76,6 +76,9 @@ pub(super) fn handle_key_event(
             KeyCode::Left => state.spawn_input_cycle(-1),
             KeyCode::Right => state.spawn_input_cycle(1),
             KeyCode::Backspace => state.spawn_input_pop_char(),
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                state.spawn_input_clear()
+            }
             KeyCode::Char(c) => state.spawn_input_push_char(c),
             _ => {}
         }

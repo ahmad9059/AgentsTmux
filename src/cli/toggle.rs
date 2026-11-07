@@ -4,10 +4,16 @@ use crate::tmux;
 
 pub(crate) fn cmd_toggle(args: &[String]) -> i32 {
     let mut create_only = false;
+    let mut auto = false;
     let mut positional = Vec::new();
 
     for arg in args {
         if arg == "--create-only" {
+            create_only = true;
+        } else if arg == "--auto" {
+            // Automatic creation (hooks, plugin load): honours
+            // `@sidebar_auto_create`. Manual toggles never do.
+            auto = true;
             create_only = true;
         } else {
             positional.push(arg.as_str());
@@ -22,33 +28,20 @@ pub(crate) fn cmd_toggle(args: &[String]) -> i32 {
     if tmux::workspace::is_parking_window(window_id) {
         return 0;
     }
+    if auto {
+        let mode = tmux::display_message(window_id, "#{@sidebar_auto_create}");
+        let name = tmux::display_message(window_id, "#{window_name}");
+        if !auto_create_allowed(&mode, &name) {
+            return 0;
+        }
+    }
 
-    // Check sidebar width setting
-    let sidebar_width_setting = {
-        let s = tmux::display_message(window_id, &format!("#{{{}}}", tmux::SIDEBAR_WIDTH));
-        if s.is_empty() { "30".to_string() } else { s }
-    };
-
-    let sidebar_width = if sidebar_width_setting.ends_with('%') {
+    let sidebar_width = {
+        let setting = tmux::display_message(window_id, &format!("#{{{}}}", tmux::SIDEBAR_WIDTH));
         let window_width: u32 = tmux::display_message(window_id, "#{window_width}")
             .parse()
             .unwrap_or(0);
-        let pct: u32 = sidebar_width_setting
-            .trim_end_matches('%')
-            .parse()
-            .unwrap_or(15);
-        if window_width > 0 && pct > 0 {
-            let w = window_width * pct / 100;
-            if w < 1 {
-                "1".to_string()
-            } else {
-                w.to_string()
-            }
-        } else {
-            sidebar_width_setting
-        }
-    } else {
-        sidebar_width_setting
+        tmux::sidebar_width::resolve_columns(&setting, window_width).to_string()
     };
 
     let sidebar_position = SidebarPosition::from_setting(&tmux::display_message(
@@ -129,6 +122,39 @@ pub(crate) fn cmd_toggle(args: &[String]) -> i32 {
         let _ = tmux::run_tmux(&["select-pane", "-t", window_id, "-l"]);
     }
 
+    0
+}
+
+/// Whether the sidebar may be created automatically in a window.
+///
+/// `on` means every window, `off` means none, and anything else (the
+/// default, `agents`) means only windows named "Agents" or "Agent", so the
+/// sidebar appears where agents live and nowhere else unless toggled by hand.
+fn auto_create_allowed(mode: &str, window_name: &str) -> bool {
+    match mode.trim().to_ascii_lowercase().as_str() {
+        "on" => true,
+        "off" => false,
+        _ => {
+            let name = window_name.trim();
+            name.eq_ignore_ascii_case("agents") || name.eq_ignore_ascii_case("agent")
+        }
+    }
+}
+
+/// Create the sidebar in every existing window that qualifies for automatic
+/// creation. Run on plugin load so windows restored with tmux-resurrect, or
+/// created before the plugin loaded, are covered.
+pub(crate) fn cmd_auto_create(_args: &[String]) -> i32 {
+    let windows = tmux::run_tmux(&[
+        "list-windows",
+        "-a",
+        "-F",
+        "#{window_id}|#{pane_current_path}",
+    ])
+    .unwrap_or_default();
+    for (window_id, pane_path) in unique_window_paths(&windows) {
+        cmd_toggle(&["--auto".to_string(), window_id, pane_path]);
+    }
     0
 }
 
@@ -352,6 +378,24 @@ fn pane_id_role_format() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn auto_create_defaults_to_windows_named_agents() {
+        for mode in ["", "agents", "anything-else"] {
+            assert!(auto_create_allowed(mode, "Agents"), "{mode}");
+            assert!(auto_create_allowed(mode, " agent "), "{mode}");
+            assert!(auto_create_allowed(mode, "AGENTS"), "{mode}");
+            assert!(!auto_create_allowed(mode, "zsh"), "{mode}");
+            assert!(!auto_create_allowed(mode, "agents-old"), "{mode}");
+        }
+    }
+
+    #[test]
+    fn auto_create_on_and_off_ignore_the_window_name() {
+        assert!(auto_create_allowed("on", "zsh"));
+        assert!(auto_create_allowed(" ON ", "zsh"));
+        assert!(!auto_create_allowed("off", "Agents"));
+    }
 
     #[test]
     fn any_sidebar_pane_detects_sidebar_anywhere() {

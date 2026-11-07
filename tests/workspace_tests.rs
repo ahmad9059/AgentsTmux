@@ -74,15 +74,16 @@ fn single_window_agents_keep_processes_and_worktree_ownership() {
         host,
     ])
     .unwrap();
-    let branch = worktree::spawn(&worktree::SpawnRequest {
+    let folder = root.join("app");
+    std::fs::create_dir(&folder).unwrap();
+    worktree::spawn(&worktree::SpawnRequest {
         repo_root: root.to_path_buf(),
-        task_name: "first".into(),
+        directory: folder.clone(),
         session: "workspace-owner".into(),
         agent: "sleep 600".into(),
         mode: "default".into(),
     })
     .unwrap();
-    assert_eq!(branch, "agent/first");
     assert_eq!(
         tmux::run_tmux_capture(&[
             "list-windows",
@@ -107,20 +108,28 @@ fn single_window_agents_keep_processes_and_worktree_ownership() {
         .unwrap();
     assert_ne!(agent, original);
     let agent_pid = tmux::display_message(agent, "#{pane_pid}");
-    assert_eq!(worktree::read_spawn_markers(agent).branch, "agent/first");
+    assert_eq!(
+        worktree::read_spawn_markers(agent).from_repo,
+        folder.to_str().unwrap()
+    );
+    assert!(worktree::read_spawn_markers(agent).worktree_path.is_empty());
     assert!(!worktree::read_spawn_markers(original).spawned);
     tmux::workspace::show(host, original, "workspace-owner").unwrap();
     tmux::run_tmux_capture(&["select-pane", "-t", &sidebar]).unwrap();
     assert_eq!(tmux::find_active_pane(&sidebar).unwrap().0, original);
     assert_eq!(tmux::display_message(original, "#{pane_pid}"), original_pid);
-    assert_eq!(worktree::read_spawn_markers(agent).branch, "agent/first");
+    assert!(worktree::read_spawn_markers(agent).spawned);
     assert!(!worktree::read_spawn_markers(original).spawned);
     tmux::workspace::show(host, agent, "workspace-owner").unwrap();
     assert_eq!(tmux::find_active_pane(&sidebar).unwrap().0, agent);
     assert_eq!(tmux::display_message(agent, "#{pane_pid}"), agent_pid);
     // Removing a visible agent must remove only its slot, never the host.
     worktree::remove(agent, worktree::RemoveMode::WindowAndWorktree).unwrap();
-    assert!(!root.join(".worktrees/first").exists());
+    assert!(folder.is_dir(), "closing an agent never deletes its folder");
+    assert!(
+        !root.join(".worktrees").exists(),
+        "no worktree is ever created"
+    );
     assert!(!tmux::display_message(host, "#{window_id}").is_empty());
     assert_eq!(tmux::display_message(original, "#{pane_pid}"), original_pid);
     tmux::workspace::show(host, original, "workspace-owner").unwrap();

@@ -877,12 +877,12 @@ fn open_spawn_input_initialises_fields_to_defaults() {
             field,
             ..
         } => {
-            assert_eq!(input, "");
+            assert_eq!(input, "/home/u/myproj");
             assert_eq!(target_repo, "myproj");
             assert_eq!(target_repo_root, "/home/u/myproj");
             assert_eq!(*agent_idx, 0);
             assert_eq!(*mode_idx, 0);
-            assert_eq!(*field, agents_tmux::state::SpawnField::Task);
+            assert_eq!(*field, agents_tmux::state::SpawnField::Path);
         }
         _ => panic!("expected SpawnInput popup"),
     }
@@ -891,6 +891,7 @@ fn open_spawn_input_initialises_fields_to_defaults() {
 #[test]
 fn spawn_input_push_char_only_types_into_input_field() {
     let mut state = spawn_state_with_repo();
+    state.spawn_input_clear();
     state.spawn_input_push_char('h');
     state.spawn_input_push_char('i');
     // Move to agent field — pushing chars there must be a no-op.
@@ -908,6 +909,7 @@ fn spawn_input_push_char_only_types_into_input_field() {
 #[test]
 fn spawn_input_pop_char_removes_trailing_char_only_on_input_field() {
     let mut state = spawn_state_with_repo();
+    state.spawn_input_clear();
     for c in "abc".chars() {
         state.spawn_input_push_char(c);
     }
@@ -931,10 +933,10 @@ fn spawn_input_field_wraps_forward_and_backward() {
     let mut state = spawn_state_with_repo();
     state.spawn_input_next_field();
     state.spawn_input_next_field();
-    state.spawn_input_next_field(); // wraps back to Task
+    state.spawn_input_next_field(); // wraps back to Path
     match &state.popup {
         PopupState::SpawnInput { field, .. } => {
-            assert_eq!(*field, agents_tmux::state::SpawnField::Task)
+            assert_eq!(*field, agents_tmux::state::SpawnField::Path)
         }
         _ => panic!(),
     }

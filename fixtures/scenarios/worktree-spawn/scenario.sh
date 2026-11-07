@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Single-frame snapshot showing the worktree-spawn popup open.
+# Single-frame snapshot showing the new-agent popup open.
 #
 # Usage:  scenario.sh <output-dir> [extra capture args...]
 

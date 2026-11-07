@@ -11,7 +11,8 @@ One tmux window for your coding agents. Keep a persistent sidebar on the left, s
 - **Useful notifications:** short, single-line completion, question, permission, and error alerts. Session selection does not replay old completions. On Hyprland, alerts are suppressed when the source tmux window is visible on an active workspace.
 - **Papirus status icons:** green completion tick, question, and error icons, with theme-icon fallbacks when Papirus is unavailable.
 - **Claude Code, Codex, OpenCode V2, and Pi:** agent integrations are included, including the client-side bridge needed by OpenCode's shared-service architecture.
-- **Worktree lifecycle:** create isolated agent worktrees and remove an individual agent without killing the shared Agents window.
+- **Start agents in any folder:** the **+** button opens an agent in the current folder, or in a path you type. No git worktree or branch is created. Closing an agent never touches its folder or kills the shared Agents window.
+- **Quiet by default:** the sidebar appears only where you ask for it (**prefix + e**) and in windows named "Agents" or "Agent". It keeps its configured width when the terminal is resized.
 
 ## Requirements
 
@@ -70,8 +71,11 @@ For custom plugin locations, set `AGENTSTMUX_HOOK` to the absolute path of `hook
 - **Prefix + e:** toggle the sidebar in the current window.
 - **Prefix + E:** toggle sidebars across windows.
 - **Click an agent**, or navigate with **j/k** or the arrow keys and press **Enter**, to show it in the right pane.
-- Use the project **+** button to create a worktree and agent.
+- Use the project **+** button to start an agent. The folder field is prefilled with the current folder; edit it (or press **Ctrl+U** to clear it) to open the agent elsewhere. `~` and relative paths work, and the folder must already exist.
+- `agents-tmux spawn [folder]` does the same from a shell.
 - Use an agent's **×** button for removal options. Removing an agent does not close the shared host window.
+
+The sidebar is never opened in every window automatically. It is created by hand with **prefix + e**, and automatically in windows named "Agents" or "Agent" (new, renamed, or restored ones). Set `@sidebar_auto_create` to `on` for every new window, or `off` for none. `@sidebar_width` sets the width in columns (default `32`) or as a percentage such as `15%`.
 
 In single-window mode, other agents remain in a detached `__agent-sidebar-*` holding session. These are live panes, not suspended processes. Do not kill the holding session unless you intend to stop those agents.
 
@@ -87,7 +91,7 @@ set -g @sidebar_color_idle '#4caf50'
 set-environment -g AGENTSTMUX_SHOW_PREVIEWS 0
 ```
 
-The first spawn from a sidebar records that window as its session's host. Existing agents in other windows are not silently migrated. Advanced users can adopt a pane with `agents-tmux workspace-select <host-window> <pane> <owner-session>`; existing worktree markers are promoted to pane scope before swapping. Moving an existing window out of the main tab bar is a separate, explicit tmux operation.
+The first spawn from a sidebar records that window as its session's host. Existing agents in other windows are not silently migrated. Advanced users can adopt a pane with `agents-tmux workspace-select <host-window> <pane> <owner-session>`; existing markers are promoted to pane scope before swapping. Moving an existing window out of the main tab bar is a separate, explicit tmux operation.
 
 Restart only the sidebar (toggle off, then on) after installing a newly built binary or changing startup-only appearance settings. Your agents can keep running.
 
@@ -110,4 +114,4 @@ MIT. The original copyright notice is retained in [`LICENSE`](LICENSE).
 
 ## Credits
 
-AgentsTmux is based on [tmux-agent-sidebar](https://github.com/hiroppy/tmux-agent-sidebar) by [hiroppy (Yuta Hiroto)](https://github.com/hiroppy). Thank you for the original sidebar, agent adapters, worktree tooling, and documentation. AgentsTmux is independently maintained by [ahmad9059](https://github.com/ahmad9059), with the single-window workspace, selection and ordering fixes, compact views, notification improvements, and additional integrations described above.
+AgentsTmux is based on [tmux-agent-sidebar](https://github.com/hiroppy/tmux-agent-sidebar) by [hiroppy (Yuta Hiroto)](https://github.com/hiroppy). Thank you for the original sidebar, agent adapters, and documentation. AgentsTmux is independently maintained by [ahmad9059](https://github.com/ahmad9059), with the single-window workspace, selection and ordering fixes, compact views, notification improvements, and additional integrations described above.

@@ -1816,12 +1816,12 @@ fn snapshot_spawn_modal_default_state() {
     let mut state = make_state_for_popup_tests(vec![repo_group_with_root("proj", vec![pane])]);
     state.open_spawn_input_for_repo("proj".into(), "/home/u/proj".into(), None);
     let output = render_to_string(&mut state, 34, 18);
-    insta::assert_snapshot!(output, @r"
+    insta::assert_snapshot!(output, @"
      ≡1  ●0  ◎0  ◐0  ○1  ✕0
-    ⓘ╭ Spawn worktree ──────────────╮▾
+    ⓘ╭ New agent ───────────────────╮▾
     p│                              │+
-    ┃│ NAME                         │
-    ┃│ █                            │
+    ┃│ FOLDER                       │
+    ┃│ /home/u/proj█                │
      │ AGENT                        │
      │ claude                       │
      │ MODE                         │
@@ -1845,12 +1845,12 @@ fn snapshot_spawn_modal_anchors_directly_below_repo_header() {
     state.global.selected_pane_row = 0;
     state.open_spawn_input_from_selection();
     let output = render_to_string(&mut state, 34, 18);
-    insta::assert_snapshot!(output, @r"
+    insta::assert_snapshot!(output, @"
      ≡1  ●0  ◎0  ◐0  ○1  ✕0
     ⓘ                              — ▾
-    ╭ Spawn worktree ──────────────╮ +
-    │ NAME                         │
-    │ █                            │
+    ╭ New agent ───────────────────╮ +
+    │ FOLDER                       │
+    │ /home/u/proj█                │
     │ AGENT                        │
     │ claude                       │
     │ MODE                         │
@@ -1875,12 +1875,12 @@ fn snapshot_spawn_modal_advance_fields_cycles_agent_and_mode() {
     state.spawn_input_next_field();
     state.spawn_input_cycle(2); // default → bypassPermissions
     let output = render_to_string(&mut state, 34, 18);
-    insta::assert_snapshot!(output, @r"
+    insta::assert_snapshot!(output, @"
      ≡1  ●0  ◎0  ◐0  ○1  ✕0
-    ⓘ╭ Spawn worktree ──────────────╮▾
+    ⓘ╭ New agent ───────────────────╮▾
     p│                              │+
-    ┃│ NAME                         │
-    ┃│ add login                    │
+    ┃│ FOLDER                       │
+    ┃│ /home/u/projadd login        │
      │ AGENT                        │
      │ codex                        │
      │ MODE                         │
@@ -1901,11 +1901,11 @@ fn snapshot_spawn_modal_tail_fits_long_task_name() {
         state.spawn_input_push_char(c);
     }
     let output = render_to_string(&mut state, 34, 18);
-    insta::assert_snapshot!(output, @r"
+    insta::assert_snapshot!(output, @"
      ≡1  ●0  ◎0  ◐0  ○1  ✕0
-    ⓘ╭ Spawn worktree ──────────────╮▾
+    ⓘ╭ New agent ───────────────────╮▾
     p│                              │+
-    ┃│ NAME                         │
+    ┃│ FOLDER                       │
     ┃│ …re-authentication-pipeline█ │
      │ AGENT                        │
      │ claude                       │
@@ -1927,11 +1927,11 @@ fn snapshot_spawn_modal_narrow_width_still_fits() {
         state.spawn_input_push_char(c);
     }
     let output = render_to_string(&mut state, 18, 18);
-    insta::assert_snapshot!(output, @r"
+    insta::assert_snapshot!(output, @"
      ≡1  ●0  ◎0  ◐0  ○
-    ╭ Spawn worktree ╮
-    │ NAME           │
-    │ hi█            │
+    ╭ New agent ─────╮
+    │ FOLDER         │
+    │ …ome/u/projhi█ │
     │ AGENT          │
     │ claude         │
     │ MODE           │
@@ -1956,11 +1956,11 @@ fn snapshot_spawn_modal_compact_layout_in_short_agent_area() {
         state.spawn_input_push_char(c);
     }
     let output = render_to_string(&mut state, 40, 14);
-    insta::assert_snapshot!(output, @r"
+    insta::assert_snapshot!(output, @"
      ≡1  ●0  ◎0  ◐0  ○1  ✕0
     ⓘ                                    — ▾
-    proj╭ Spawn worktree ──────────────╮   +
-    ┃ ○ │ hi█                          │
+    proj╭ New agent ───────────────────╮   +
+    ┃ ○ │ /home/u/projhi█              │
     ┃   │ claude                       │
         │ default                      │
         ╰──────────────────────────────╯
@@ -1977,13 +1977,13 @@ fn snapshot_spawn_modal_compact_layout_shows_inline_error() {
     state.open_spawn_input_for_repo("proj".into(), "/home/u/proj".into(), None);
     state.confirm_spawn_input();
     let output = render_to_string(&mut state, 40, 14);
-    insta::assert_snapshot!(output, @r"
+    insta::assert_snapshot!(output, @"
      ≡1  ●0  ◎0  ◐0  ○1  ✕0
-    ⓘ   ╭ Spawn worktree ──────────────╮ — ▾
-    proj│ █                            │   +
+    ⓘ   ╭ New agent ───────────────────╮ — ▾
+    proj│ /home/u/proj█                │   +
     ┃ ○ │ claude                       │
     ┃   │ default                      │
-        │ name is empty                │
+        │ not a folder: /home/u/proj   │
         ╰──────────────────────────────╯
     ╭ Activity │ Git ──────────────────────╮
     │            No activity yet           │
@@ -2229,6 +2229,7 @@ fn snapshot_remove_confirm_modal_shows_three_options() {
     state.popup = PopupState::RemoveConfirm {
         pane_id: "%42".into(),
         branch: "add-login".into(),
+        has_worktree: true,
         error: None,
         area: None,
     };
@@ -2260,16 +2261,16 @@ fn snapshot_spawn_modal_shows_inline_error_when_task_empty() {
     assert!(state.is_spawn_input_open(), "popup must stay open on error");
     let output = render_to_string(&mut state, 34, 18);
     insta::assert_snapshot!(output, @"
-     ╭ Spawn worktree ──────────────╮
+     ╭ New agent ───────────────────╮
     ⓘ│                              │▾
-    p│ NAME                         │+
-    ┃│ █                            │
+    p│ FOLDER                       │+
+    ┃│ /home/u/proj█                │
     ┃│                              │
      │ AGENT                        │
      │ claude                       │
      │ MODE                         │
      │ default                      │
-     │ name is empty                │
+     │ not a folder: /home/u/proj   │
      ╰──────────────────────────────╯
     ╭ Activity │ Git ────────────────╮
     │         No activity yet        │
@@ -2301,6 +2302,7 @@ fn snapshot_remove_confirm_modal_shows_inline_error() {
     state.popup = PopupState::RemoveConfirm {
         pane_id: "%42".into(),
         branch: "add-login".into(),
+        has_worktree: true,
         error: Some("git: worktree has uncommitted changes".into()),
         area: None,
     };
@@ -2409,5 +2411,33 @@ fn snapshot_background_long_command_truncates_with_ellipsis() {
     ╭ Activity │ Git ──────────╮
     │      No activity yet     │
     ╰──────────────────────────╯
+    ");
+}
+
+#[test]
+fn snapshot_remove_confirm_modal_for_a_plain_folder_agent_offers_only_close() {
+    let pane = make_pane(AgentType::Claude, PaneStatus::Idle);
+    let mut state = make_state_for_popup_tests(vec![repo_group_with_root("proj", vec![pane])]);
+    state.popup = PopupState::RemoveConfirm {
+        pane_id: "%42".into(),
+        branch: "app".into(),
+        has_worktree: false,
+        error: None,
+        area: None,
+    };
+    let output = render_to_string(&mut state, 50, 18);
+    insta::assert_snapshot!(output, @"
+     ≡1  ●0  ◎0  ◐0  ○1  ✕0
+    ⓘ                                              — ▾
+    proj                                             +
+    ┃ ○ claude
+    ┃   main
+        Waiting╭ app ─────────────────────╮
+               │[y] close agent window    │
+               │[n] cancel                │
+               ╰──────────────────────────╯
+    ╭ Activity │ Git ────────────────────────────────╮
+    │                 No activity yet                │
+    ╰────────────────────────────────────────────────╯
     ");
 }

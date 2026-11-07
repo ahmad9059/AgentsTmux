@@ -1,16 +1,11 @@
-//! `spawn` subcommand — create a new worktree + tmux window running an agent.
+//! `spawn` subcommand — open a new tmux window running an agent in a folder.
 
 use std::path::PathBuf;
 
-use crate::git;
 use crate::tmux;
 use crate::worktree::{self, SpawnRequest};
 
 pub fn cmd_spawn(args: &[String]) -> i32 {
-    if args.is_empty() {
-        eprintln!("usage: agents-tmux spawn <name>");
-        return 2;
-    }
     let pane = std::env::var("TMUX_PANE").unwrap_or_default();
     if pane.is_empty() {
         eprintln!("error: TMUX_PANE is not set; spawn must be run from inside tmux");
@@ -20,9 +15,13 @@ pub fn cmd_spawn(args: &[String]) -> i32 {
         eprintln!("error: could not resolve current pane path");
         return 1;
     };
-    let Some(repo_root) = git::repo_root(&cwd) else {
-        eprintln!("error: {cwd} is not inside a git repository");
-        return 1;
+    let base = PathBuf::from(&cwd);
+    let directory = match worktree::resolve_directory(&args.join(" "), &base) {
+        Ok(directory) => directory,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 1;
+        }
     };
     let Some(session) = tmux::pane_session_name(&pane) else {
         eprintln!("error: could not resolve current tmux session");
@@ -37,15 +36,15 @@ pub fn cmd_spawn(args: &[String]) -> i32 {
         .unwrap_or_else(|| worktree::DEFAULT_AGENT.into());
 
     let req = SpawnRequest {
-        repo_root: PathBuf::from(repo_root),
-        task_name: args.join(" "),
+        repo_root: base,
+        directory: directory.clone(),
         session,
         agent,
         mode: worktree::DEFAULT_MODE.into(),
     };
     match worktree::spawn(&req) {
-        Ok(branch) => {
-            println!("spawned {branch}");
+        Ok(_) => {
+            println!("started agent in {}", directory.display());
             0
         }
         Err(e) => {
