@@ -54,14 +54,15 @@ struct PaneLayout {
     list_area: Rect,
 }
 
-/// Screen row of the sidebar heading.
-pub const HEADER_ROW: u16 = 0;
+/// Screen row of the sidebar heading. One blank row above it keeps it off
+/// the tmux status bar.
+pub const HEADER_ROW: u16 = 1;
 /// Screen row where the agent list starts, directly under the heading.
-pub const LIST_FIRST_ROW: u16 = 1;
+pub const LIST_FIRST_ROW: u16 = 2;
 
 impl PaneLayout {
     fn compute(area: Rect) -> Self {
-        let header_y = area.y + HEADER_ROW;
+        let header_y = area.y + HEADER_ROW.min(area.height);
         let secondary_area = Rect {
             x: area.x,
             y: header_y,
@@ -556,7 +557,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pane_layout_puts_the_list_directly_under_the_header() {
+    fn pane_layout_leaves_a_blank_row_above_the_header() {
         let area = Rect {
             x: 0,
             y: 0,
@@ -564,10 +565,10 @@ mod tests {
             height: 20,
         };
         let layout = PaneLayout::compute(area);
-        assert_eq!(layout.secondary_area.y, 0);
+        assert_eq!(layout.secondary_area.y, 1);
         assert_eq!(layout.secondary_area.height, 1);
-        assert_eq!(layout.list_area.y, 1);
-        assert_eq!(layout.list_area.height, 19);
+        assert_eq!(layout.list_area.y, 2);
+        assert_eq!(layout.list_area.height, 18);
         assert_eq!(layout.list_area.width, 40);
     }
 
@@ -580,7 +581,7 @@ mod tests {
             height: 1,
         };
         let layout = PaneLayout::compute(area);
-        assert_eq!(layout.secondary_area.height, 1);
+        assert_eq!(layout.secondary_area.height, 0);
         assert_eq!(layout.list_area.height, 0);
     }
 
@@ -607,9 +608,9 @@ mod tests {
         };
         let layout = PaneLayout::compute(area);
         assert_eq!(layout.secondary_area.x, 5);
-        assert_eq!(layout.secondary_area.y, 10);
+        assert_eq!(layout.secondary_area.y, 11);
         assert_eq!(layout.list_area.x, 5);
-        assert_eq!(layout.list_area.y, 11);
-        assert_eq!(layout.list_area.height, 14);
+        assert_eq!(layout.list_area.y, 12);
+        assert_eq!(layout.list_area.height, 13);
     }
 }

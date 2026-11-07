@@ -75,7 +75,9 @@ impl Default for ColorTheme {
             session_header: Color::Indexed(39),
             port: Color::Indexed(246),
             wait_reason: Color::Indexed(221),
-            selection_bg: Color::Indexed(239),
+            // A deep navy that sits on the dark, transparent background instead of the
+            // flat grey of the 256-color palette.
+            selection_bg: Color::Rgb(0x1b, 0x1d, 0x3b),
             branch: Color::Indexed(109),
             badge_danger: Color::Indexed(167),
             badge_auto: Color::Indexed(221),
