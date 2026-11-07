@@ -1240,7 +1240,7 @@ mod tests {
         state.layout.line_to_row = vec![None, Some(0), Some(1)];
         state.scrolls.panes.offset = 0;
 
-        // row 0 = padding, row 1 = header, row 2+ = agent list rows
+        // row 0 = header, row 1 = divider, row 2+ = agent list rows
         state.handle_mouse_click(3, 5); // row 3 → line_index = (3-2) = 1 → agent row 0
         assert_eq!(state.global.selected_pane_row, 0);
 
@@ -1265,10 +1265,10 @@ mod tests {
         ];
         state.layout.repo_button_col = Some(20);
 
-        state.handle_mouse_click(1, 19);
+        state.handle_mouse_click(0, 19);
         assert!(!state.is_repo_popup_open());
 
-        state.handle_mouse_click(1, 20);
+        state.handle_mouse_click(0, 20);
         assert!(state.is_repo_popup_open());
     }
 
