@@ -7,11 +7,12 @@ use crate::state::{AppState, RepoFilter};
 
 use crate::ui::text::{display_width, truncate_to_width};
 
-/// Nerd Font glyph shown next to the repo filter (U+EF81).
-const REPO_ICON: &str = "\u{ef81}";
+/// Arrow shown next to the repo filter.
+const REPO_ICON: &str = "▾";
 
-/// Heading shown at the top of the sidebar.
-const TITLE: &str = "Agents";
+/// Heading shown at the top of the sidebar: the Nerd Font glyph U+EF81 and the
+/// name.
+const TITLE: &str = "\u{ef81} Agents";
 
 pub(super) fn render_secondary_header<'a>(
     state: &AppState,
@@ -91,7 +92,7 @@ mod tests {
         });
 
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ Agents                   — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ▾");
     }
 
     #[test]
@@ -119,7 +120,7 @@ mod tests {
     fn snapshot_secondary_header_without_notices_info() {
         let state = AppState::new(String::new());
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"Agents                     — ");
+        insta::assert_snapshot!(text, @" Agents                   — ▾");
     }
 
     #[test]
@@ -130,7 +131,7 @@ mod tests {
             latest_version: "0.2.7".into(),
         });
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ Agents                   — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ▾");
     }
 
     #[test]
@@ -141,7 +142,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ Agents                   — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ▾");
     }
 
     #[test]
@@ -156,7 +157,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ Agents                   — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ▾");
     }
 
     // ─── secondary header tests ───────────────────────────────
@@ -190,7 +191,7 @@ mod tests {
 
         let (line, notices_col, repo_col) = render_secondary_header(&state, 28);
         let text = line_text(&line);
-        insta::assert_snapshot!(text, @"ⓘ Agents                 — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents               — ▾");
         // Click-target columns are layout state, not visible characters,
         // so they stay as direct equality checks alongside the snapshot.
         assert_eq!(notices_col, Some(0));
