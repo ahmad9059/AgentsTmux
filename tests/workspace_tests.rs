@@ -144,3 +144,50 @@ fn single_window_agents_keep_processes_and_worktree_ownership() {
     tmux::run_tmux_capture(&["kill-session", "-t", "workspace-owner"]).unwrap();
     tmux::run_tmux_capture(&["kill-session", "-t", &parking]).unwrap();
 }
+
+#[test]
+#[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
+fn a_booting_agent_survives_until_its_grace_period_ends() {
+    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    let set = |pane: &str, key: &str, value: &str| {
+        tmux::run_tmux_capture(&["set-option", "-p", "-t", pane, key, value]).unwrap();
+    };
+    let pane = tmux::run_tmux_capture(&[
+        "new-session",
+        "-d",
+        "-s",
+        "grace-test",
+        "-P",
+        "-F",
+        "#{pane_id}",
+        "bash",
+    ])
+    .unwrap();
+    let pane = pane.trim();
+    let listed = || {
+        tmux::query_sessions()
+            .iter()
+            .flat_map(|s| &s.windows)
+            .flat_map(|w| &w.panes)
+            .any(|p| p.pane_id == pane)
+    };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    // Typed into a shell moments ago: the agent has not replaced it yet.
+    set(pane, "@pane_agent", "codex");
+    set(pane, "@pane_status", "idle");
+    set(pane, tmux::PANE_SPAWN_GRACE, &now.to_string());
+    assert!(listed(), "a booting agent must stay in the sidebar");
+
+    // Long gone: the pane fell back to a shell, so the metadata is stale.
+    set(pane, tmux::PANE_SPAWN_GRACE, &(now - 600).to_string());
+    assert!(
+        !listed(),
+        "a dead agent must be dropped after the grace period"
+    );
+    assert!(tmux::get_pane_option_value(pane, tmux::PANE_AGENT).is_empty());
+    tmux::run_tmux_capture(&["kill-session", "-t", "grace-test"]).unwrap();
+}

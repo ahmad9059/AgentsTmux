@@ -67,6 +67,11 @@ pub fn spawn(req: &SpawnRequest) -> Result<String, String> {
     {
         crate::tmux::set_pane_option(&pane, crate::tmux::PANE_AGENT, &req.agent);
         crate::tmux::set_pane_option(&pane, crate::tmux::PANE_STATUS, "idle");
+        crate::tmux::set_pane_option(
+            &pane,
+            crate::tmux::PANE_SPAWN_GRACE,
+            &crate::time::now_epoch_secs().to_string(),
+        );
     }
     crate::tmux::workspace::show(&host, &pane, &req.session)
         .map_err(|e| format!("agent started in the holding session; could not display it: {e}"))?;

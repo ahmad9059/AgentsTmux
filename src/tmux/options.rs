@@ -65,6 +65,9 @@ pub const PANE_ROLE: &str = "@pane_role";
 pub const PANE_SESSION_ID: &str = "@pane_session_id";
 /// Epoch-seconds timestamp of the current run's start — drives
 /// the "running for Xs" label.
+/// Epoch seconds at which the sidebar started an agent in this pane. While it
+/// is recent, a pane that still shows a shell is an agent that is booting.
+pub const PANE_SPAWN_GRACE: &str = "@pane_spawn_grace";
 pub const PANE_STARTED_AT: &str = "@pane_started_at";
 /// High-level status (`idle` / `running` / `waiting` / `clear`).
 pub const PANE_STATUS: &str = "@pane_status";

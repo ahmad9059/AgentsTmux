@@ -251,6 +251,21 @@ pub(crate) fn parse_pane_line(line: &str) -> Option<PaneInfo> {
     parse_pane_fields_with_processes(&parts, None)
 }
 
+/// How long a freshly started agent may still show a shell before its
+/// metadata is treated as stale.
+const SPAWN_GRACE_SECS: u64 = 30;
+
+/// Whether the sidebar started an agent in this pane moments ago. The agent
+/// is launched by typing its command into a shell, so for a short while the
+/// pane legitimately looks like a bare shell.
+fn within_spawn_grace(pane_id: &str) -> bool {
+    super::get_pane_option_value(pane_id, super::PANE_SPAWN_GRACE)
+        .parse::<u64>()
+        .is_ok_and(|started| {
+            crate::time::now_epoch_secs().saturating_sub(started) < SPAWN_GRACE_SECS
+        })
+}
+
 fn parse_pane_fields_with_processes(
     parts: &[String],
     process_snapshot: Option<&ProcessSnapshot>,
@@ -283,7 +298,7 @@ fn parse_pane_fields_with_processes(
                 process_snapshot.map(|snapshot| snapshot.tree_has_agent(&[pid], &agent))
             })
             .unwrap_or(false);
-        if !agent_still_alive {
+        if !agent_still_alive && !within_spawn_grace(&parts[pane_line_field::PANE_ID]) {
             clear_agent_pane_state(&parts[pane_line_field::PANE_ID]);
             return None;
         }
