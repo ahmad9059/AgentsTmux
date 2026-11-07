@@ -473,7 +473,9 @@ fn render_header_dividers(frame: &mut Frame, state: &AppState, area: Rect) {
         frame.render_widget(
             Paragraph::new(Line::from(Span::styled(
                 "─".repeat(area.width as usize),
-                Style::default().fg(state.theme.session_header),
+                Style::default()
+                    .fg(state.theme.divider)
+                    .add_modifier(Modifier::DIM),
             ))),
             row,
         );

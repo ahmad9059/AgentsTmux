@@ -1666,7 +1666,7 @@ fn snapshot_filter_bar_icons_use_selected_and_inactive_colors() {
 
     let styled = render_to_styled_string(&mut state, 30, 25);
     let line = styled.lines().next().unwrap();
-    insta::assert_snapshot!(line, @"─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]");
+    insta::assert_snapshot!(line, @"─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]");
 }
 
 #[test]
@@ -1709,7 +1709,7 @@ fn snapshot_filter_selected_icon_has_color_without_underline() {
     // modifier on the selected filter would surface in the snapshot diff.
     let styled = render_to_styled_string(&mut state, 30, 25);
     let line = styled.lines().next().unwrap();
-    insta::assert_snapshot!(line, @"─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]");
+    insta::assert_snapshot!(line, @"─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]");
 }
 
 #[test]

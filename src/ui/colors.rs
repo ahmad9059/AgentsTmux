@@ -13,6 +13,8 @@ pub struct ColorTheme {
     /// popup border.
     pub accent: Color,
     pub border_inactive: Color,
+    /// The thin lines framing the sidebar heading: a muted blue.
+    pub divider: Color,
     pub status_all: Color,
     pub status_running: Color,
     pub status_background: Color,
@@ -54,6 +56,7 @@ impl Default for ColorTheme {
         Self {
             accent: Color::Indexed(153),
             border_inactive: Color::Indexed(240),
+            divider: Color::Indexed(24),
             status_all: Color::Indexed(111),
             // Yellow while working, blue for background work, orange when the
             // agent needs you, green when it is ready, red on error.
@@ -114,6 +117,7 @@ impl ColorTheme {
 
         theme.accent = read(tmux::SIDEBAR_COLOR_ACCENT, theme.accent);
         theme.border_inactive = read(tmux::SIDEBAR_COLOR_BORDER, theme.border_inactive);
+        theme.divider = read(tmux::SIDEBAR_COLOR_DIVIDER, theme.divider);
         theme.status_all = read(tmux::SIDEBAR_COLOR_ALL, theme.status_all);
         theme.status_running = read(tmux::SIDEBAR_COLOR_RUNNING, theme.status_running);
         theme.status_background = read(tmux::SIDEBAR_COLOR_BACKGROUND, theme.status_background);

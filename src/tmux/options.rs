@@ -101,6 +101,7 @@ pub const SIDEBAR_COLOR_BORDER: &str = "@sidebar_color_border";
 pub const SIDEBAR_COLOR_ALL: &str = "@sidebar_color_all";
 pub const SIDEBAR_COLOR_RUNNING: &str = "@sidebar_color_running";
 pub const SIDEBAR_COLOR_BACKGROUND: &str = "@sidebar_color_background";
+pub const SIDEBAR_COLOR_DIVIDER: &str = "@sidebar_color_divider";
 pub const SIDEBAR_COLOR_WAITING: &str = "@sidebar_color_waiting";
 pub const SIDEBAR_COLOR_IDLE: &str = "@sidebar_color_idle";
 pub const SIDEBAR_COLOR_ERROR: &str = "@sidebar_color_error";

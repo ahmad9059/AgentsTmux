@@ -736,7 +736,7 @@ fn snapshot_git_pr_number_ui() {
     // Styled snapshot locks in the PR link's underline + pr_link color (fg:117)
     // so future style regressions surface as a diff rather than a missed grep.
     insta::assert_snapshot!(render_to_styled_string(&mut state, 28, 14), @"
-    ─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]
+    ─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]
 
     ╭[fg:153] [fg:153]A[fg:252]c[fg:252]t[fg:252]i[fg:252]v[fg:252]i[fg:252]t[fg:252]y[fg:252] [fg:240]│[fg:240] [fg:240]G[fg:153]i[fg:153]t[fg:153] [fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]╮[fg:153]
     │[fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153] [fg:153]│[fg:153]
@@ -1493,9 +1493,9 @@ fn snapshot_focused_group_active_border_styled() {
     // Styled snapshot locks in the focused group's accent color (fg:153) on
     // the active pane marker and the active bottom-panel border.
     insta::assert_snapshot!(render_to_styled_string(&mut state, 28, 30), @"
-    ─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]
+    ─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]
     ⓘ[fg:208] A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold] [fg:39,bold]W[fg:39,bold]o[fg:39,bold]r[fg:39,bold]k[fg:39,bold]s[fg:39,bold]p[fg:39,bold]a[fg:39,bold]c[fg:39,bold]e[fg:39,bold]       —[fg:252] ▾[fg:252]
-    ─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]─[fg:39]
+    ─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]─[fg:24]
     d[fg:153]o[fg:153]t[fg:153]f[fg:153]i[fg:153]l[fg:153]e[fg:153]s[fg:153]
     ┃[fg:153,bg:239] [bg:239]⠋[fg:221,bg:239] [fg:174,bg:239]c[fg:174,bg:239]l[fg:174,bg:239]a[fg:174,bg:239]u[fg:174,bg:239]d[fg:174,bg:239]e[fg:174,bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239] [bg:239]
 
