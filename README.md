@@ -5,9 +5,18 @@ A tmux sidebar for Claude Code, Codex, OpenCode, and Pi.
 Keep your agents in one tmux window. Select an agent to show its live terminal beside the sidebar.
 Other agents continue to run in the background.
 
+![AgentsTmux in a live tmux workspace with OpenCode selected, grouped agents, and provider usage](assets/readme/live-workspace.png)
+
+Live workspace with OpenCode selected. The sidebar groups agents by folder and shows usage for the visible agent.
+
+<details>
+<summary>View the isolated demo capture</summary>
+
 ![AgentsTmux sidebar with grouped agents, status indicators, and Claude usage beside an agent terminal](assets/readme/overview.png)
 
 This screenshot shows the real sidebar with an isolated demo session. Conversations and usage values are examples.
+
+</details>
 
 ## Features
 
