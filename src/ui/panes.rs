@@ -54,19 +54,28 @@ struct PaneLayout {
     list_area: Rect,
 }
 
+/// Screen row of the sidebar heading. One blank row above it separates it
+/// from the tmux status bar.
+pub const HEADER_ROW: u16 = 1;
+/// Screen row where the agent list starts. One blank row below the heading
+/// gives it room to breathe.
+pub const LIST_FIRST_ROW: u16 = 3;
+
 impl PaneLayout {
     fn compute(area: Rect) -> Self {
+        let header_y = area.y + HEADER_ROW.min(area.height);
         let secondary_area = Rect {
             x: area.x,
-            y: area.y,
+            y: header_y,
             width: area.width,
-            height: 1.min(area.height),
+            height: 1.min((area.y + area.height).saturating_sub(header_y)),
         };
+        let list_y = area.y + LIST_FIRST_ROW.min(area.height);
         let list_area = Rect {
             x: area.x,
-            y: area.y + 1,
+            y: list_y,
             width: area.width,
-            height: area.height.saturating_sub(1),
+            height: (area.y + area.height).saturating_sub(list_y),
         };
         Self {
             secondary_area,
@@ -400,7 +409,7 @@ pub(super) fn render_repo_popup(frame: &mut Frame, state: &mut AppState, area: R
 
     // Right-aligned, below the 2-row header
     let popup_x = area.x + area.width.saturating_sub(popup_width);
-    let popup_y = area.y + 1;
+    let popup_y = area.y + HEADER_ROW + 1;
 
     let popup_rect = Rect::new(popup_x, popup_y, popup_width, popup_height);
     state.popup.set_repo_area(Some(popup_rect));
@@ -549,7 +558,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pane_layout_splits_area_into_header_and_list() {
+    fn pane_layout_leaves_a_blank_row_above_and_below_the_header() {
         let area = Rect {
             x: 0,
             y: 0,
@@ -557,10 +566,10 @@ mod tests {
             height: 20,
         };
         let layout = PaneLayout::compute(area);
-        assert_eq!(layout.secondary_area.y, 0);
+        assert_eq!(layout.secondary_area.y, 1);
         assert_eq!(layout.secondary_area.height, 1);
-        assert_eq!(layout.list_area.y, 1);
-        assert_eq!(layout.list_area.height, 19);
+        assert_eq!(layout.list_area.y, 3);
+        assert_eq!(layout.list_area.height, 17);
         assert_eq!(layout.list_area.width, 40);
     }
 
@@ -573,7 +582,7 @@ mod tests {
             height: 1,
         };
         let layout = PaneLayout::compute(area);
-        assert_eq!(layout.secondary_area.height, 1);
+        assert_eq!(layout.secondary_area.height, 0);
         assert_eq!(layout.list_area.height, 0);
     }
 
@@ -600,9 +609,9 @@ mod tests {
         };
         let layout = PaneLayout::compute(area);
         assert_eq!(layout.secondary_area.x, 5);
-        assert_eq!(layout.secondary_area.y, 10);
+        assert_eq!(layout.secondary_area.y, 11);
         assert_eq!(layout.list_area.x, 5);
-        assert_eq!(layout.list_area.y, 11);
-        assert_eq!(layout.list_area.height, 14);
+        assert_eq!(layout.list_area.y, 13);
+        assert_eq!(layout.list_area.height, 12);
     }
 }

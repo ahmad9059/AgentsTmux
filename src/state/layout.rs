@@ -181,7 +181,8 @@ impl AppState {
 
     /// Handle mouse click in agents panel. Maps screen row to agent row
     /// via line_to_row (adjusted for scroll offset) and activates that pane.
-    /// Row 0 is the fixed header, row 1+ maps to the scrollable agent list.
+    /// The fixed header sits on `HEADER_ROW`; rows from `LIST_FIRST_ROW` map to
+    /// the scrollable agent list.
     pub fn handle_mouse_click(&mut self, row: u16, col: u16) {
         if self.is_notices_popup_open() {
             if let Some(area) = self.notices_popup_area()
@@ -235,8 +236,11 @@ impl AppState {
             return;
         }
 
-        if row == 0 {
+        if row == crate::ui::panes::HEADER_ROW {
             self.handle_secondary_header_click(col);
+            return;
+        }
+        if row < crate::ui::panes::LIST_FIRST_ROW {
             return;
         }
 
@@ -265,7 +269,8 @@ impl AppState {
             return;
         }
 
-        let line_index = (row as usize - 1) + self.scrolls.panes.offset;
+        let line_index =
+            (row - crate::ui::panes::LIST_FIRST_ROW) as usize + self.scrolls.panes.offset;
         if let Some(Some(agent_row)) = self.layout.line_to_row.get(line_index) {
             self.global.selected_pane_row = *agent_row;
             self.global.queue_cursor_save();
