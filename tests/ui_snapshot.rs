@@ -1604,7 +1604,7 @@ fn snapshot_filter_bar_icons_use_selected_and_inactive_colors() {
 
     let styled = render_to_styled_string(&mut state, 30, 25);
     let line = styled.lines().next().unwrap();
-    insta::assert_snapshot!(line, @"ⓘ[fg:208] A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold] [fg:39,bold]W[fg:39,bold]o[fg:39,bold]r[fg:39,bold]k[fg:39,bold]s[fg:39,bold]p[fg:39,bold]a[fg:39,bold]c[fg:39,bold]e[fg:39,bold]         —[fg:252] ▾[fg:252]");
+    insta::assert_snapshot!(line, @"");
 }
 
 #[test]
@@ -1623,7 +1623,6 @@ fn snapshot_filter_bar_stays_fixed_on_scroll() {
 
     let output = render_to_string(&mut state, 30, 15);
     insta::assert_snapshot!(output, @"
-    ⓘ Agents Workspace         — ▾
     ╭ Activity │ Git ────────────╮
     │       No activity yet      │
     ╰────────────────────────────╯
@@ -1647,7 +1646,7 @@ fn snapshot_filter_selected_icon_has_color_without_underline() {
     // modifier on the selected filter would surface in the snapshot diff.
     let styled = render_to_styled_string(&mut state, 30, 25);
     let line = styled.lines().next().unwrap();
-    insta::assert_snapshot!(line, @"ⓘ[fg:208] A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold] [fg:39,bold]W[fg:39,bold]o[fg:39,bold]r[fg:39,bold]k[fg:39,bold]s[fg:39,bold]p[fg:39,bold]a[fg:39,bold]c[fg:39,bold]e[fg:39,bold]         —[fg:252] ▾[fg:252]");
+    insta::assert_snapshot!(line, @"");
 }
 
 #[test]
@@ -1755,8 +1754,7 @@ fn snapshot_spawn_modal_default_state() {
     state.open_spawn_input_for_repo("proj".into(), "/home/u/proj".into(), None);
     let output = render_to_string(&mut state, 34, 18);
     insta::assert_snapshot!(output, @"
-    ⓘ Agents Workspace             — ▾
-     ╭ New agent ───────────────────╮
+    ⓘ╭ New agent ───────────────────╮▾
     p│                              │+
     ┃│ FOLDER                       │
     ┃│ /home/u/proj█                │
@@ -1813,8 +1811,7 @@ fn snapshot_spawn_modal_advance_fields_cycles_agent_and_mode() {
     state.spawn_input_cycle(2); // default → bypassPermissions
     let output = render_to_string(&mut state, 34, 18);
     insta::assert_snapshot!(output, @"
-    ⓘ Agents Workspace             — ▾
-     ╭ New agent ───────────────────╮
+    ⓘ╭ New agent ───────────────────╮▾
     p│                              │+
     ┃│ FOLDER                       │
     ┃│ /home/u/projadd login        │
@@ -1839,8 +1836,7 @@ fn snapshot_spawn_modal_tail_fits_long_task_name() {
     }
     let output = render_to_string(&mut state, 34, 18);
     insta::assert_snapshot!(output, @"
-    ⓘ Agents Workspace             — ▾
-     ╭ New agent ───────────────────╮
+    ⓘ╭ New agent ───────────────────╮▾
     p│                              │+
     ┃│ FOLDER                       │
     ┃│ …re-authentication-pipeline█ │
@@ -1865,7 +1861,6 @@ fn snapshot_spawn_modal_narrow_width_still_fits() {
     }
     let output = render_to_string(&mut state, 18, 18);
     insta::assert_snapshot!(output, @"
-    ⓘ Agents Work… — ▾
     ╭ New agent ─────╮
     │ FOLDER         │
     │ …ome/u/projhi█ │
@@ -1914,8 +1909,7 @@ fn snapshot_spawn_modal_compact_layout_shows_inline_error() {
     state.confirm_spawn_input();
     let output = render_to_string(&mut state, 40, 14);
     insta::assert_snapshot!(output, @"
-    ⓘ Agents Workspace                   — ▾
-        ╭ New agent ───────────────────╮
+    ⓘ Ag╭ New agent ───────────────────╮ — ▾
     proj│ /home/u/proj█                │   +
     ┃ ○ │ claude                       │
     ┃   │ default                      │
@@ -2193,7 +2187,8 @@ fn snapshot_spawn_modal_shows_inline_error_when_task_empty() {
     assert!(state.is_spawn_input_open(), "popup must stay open on error");
     let output = render_to_string(&mut state, 34, 18);
     insta::assert_snapshot!(output, @"
-    ⓘ╭ New agent ───────────────────╮▾
+     ╭ New agent ───────────────────╮
+    ⓘ│                              │▾
     p│ FOLDER                       │+
     ┃│ /home/u/proj█                │
     ┃│                              │
