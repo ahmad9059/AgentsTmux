@@ -1,0 +1,29 @@
+
+ Claude Code
+ Opus 5.5 · Claude Max
+ ~/projects/api
+
+ > Add input validation to the login endpoint.
+
+ I'll check the handler and its tests first.
+
+ Read     src/routes/login.ts
+ Read     tests/login.test.ts
+ Edit     src/routes/login.ts
+
+ Added checks for missing and invalid email addresses.
+
+ Run      npm test -- login
+
+   PASS   tests/login.test.ts
+   Tests: 12 passed, 12 total
+
+ The handler now returns a clear validation error.
+ Existing login behavior remains unchanged.
+
+ --------------------------------------------------------
+ DEMO SESSION · Example conversation and usage values
+ --------------------------------------------------------
+
+ Other agents continue running outside this window.
+ Select an agent in the sidebar to view its terminal.

@@ -4,7 +4,7 @@
 // 32 CSS-px padding on all sides. The HTML itself is bare (no body
 // padding / bg) so the composition step lives in one place here.
 //
-// Usage:  node scripts/render-frames.mjs <dir> [--scale 2]
+// Usage:  node scripts/render-frames.mjs <dir> [--scale 2] [--readme]
 //
 // Resolves `playwright` and `sharp` relative to CWD's node_modules.
 // Run from `website/` so both packages are found.
@@ -57,6 +57,14 @@ for (const file of htmlFiles) {
   const htmlPath = join(dir, file);
   const pngPath = htmlPath.replace(/\.html$/, ".png");
   await page.goto(pathToFileURL(htmlPath).toString(), { waitUntil: "load" });
+  if (argv.includes("--readme")) {
+    // README captures show the complete terminal without the website hero's
+    // blur. Use the installed Nerd Font so the sidebar icons render too.
+    await page.addStyleTag({ content: `
+      .blur-right { display: none; }
+      pre { font-family: 'JetBrainsMono Nerd Font', 'JetBrains Mono', monospace; }
+    ` });
+  }
   // Wait for webfonts so typography is stable across frames.
   await page.evaluate(() => document.fonts.ready);
   // capture/render_html wraps content in a .mac-window with chrome.

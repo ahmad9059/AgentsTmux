@@ -1,0 +1,26 @@
+
+ OpenAI Codex
+ GPT-6.1-Sol · Pro
+ ~/projects/web
+
+ > Preserve the query string after login redirects.
+
+ Checked the redirect handler and existing tests.
+
+ Changed  src/auth/redirect.ts
+ Added    tests/redirect-query.test.ts
+
+ The new test covers redirects with a query string.
+
+ Permission requested
+
+   npm test -- redirect-query
+
+ Approve the command in this agent's terminal.
+
+ --------------------------------------------------------
+ DEMO SESSION · Example conversation and usage values
+ --------------------------------------------------------
+
+ The Usage section now follows Codex.
+ Claude keeps its process and conversation in the background.

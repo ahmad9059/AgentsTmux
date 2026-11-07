@@ -5,6 +5,10 @@ A tmux sidebar for Claude Code, Codex, OpenCode, and Pi.
 Keep your agents in one tmux window. Select an agent to show its live terminal beside the sidebar.
 Other agents continue to run in the background.
 
+![AgentsTmux sidebar with grouped agents, status indicators, and Claude usage beside an agent terminal](assets/readme/overview.png)
+
+This screenshot shows the real sidebar with an isolated demo session. Conversations and usage values are examples.
+
 ## Features
 
 - **One window for agents.** Switch agents without adding a tmux window for each agent.
@@ -194,6 +198,10 @@ Existing window markers become pane markers before the swap. Moving an existing 
 
 The **Usage** section follows the agent in view. It has no tabs or surrounding box.
 
+![Codex selected in the sidebar, with its model, subscription limits, and token usage](assets/readme/codex-usage.png)
+
+Selecting Codex changes the visible terminal and Usage section. This capture uses example data, not a personal account.
+
 | Agent | Available data |
 |---|---|
 | Claude Code | Five-hour and weekly subscription limits, reset times, plan, and extra usage |
@@ -329,6 +337,17 @@ cargo build --release
 ```
 
 Tests cover agent ordering, selection, session snapshots, notifications, usage data, and interface rendering.
+
+To regenerate the README screenshots, install the website dependencies and a Playwright browser.
+Use a Nerd Font to render the sidebar glyphs.
+Then run:
+
+```sh
+bash scripts/build-readme-captures.sh
+```
+
+For a system Chromium installation, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its executable path.
+The capture script uses a separate tmux server and demo credentials. It does not change website screenshots or your running agents.
 
 [`tests/workspace_tests.rs`](tests/workspace_tests.rs) includes tests that use a real tmux server.
 The standard test suite skips these tests. Run them only against an isolated, disposable tmux server.
