@@ -52,10 +52,16 @@ fn window_name(directory: &Path) -> String {
 /// mark the window so the matching `x` flow can find it later. No git
 /// worktree or branch is created. Returns the new pane id.
 pub fn spawn(req: &SpawnRequest) -> Result<String, String> {
+    let caller = std::env::var("TMUX_PANE").unwrap_or_default();
+    spawn_from_pane(req, &caller)
+}
+
+/// Start from a known pane instead of relying on the popup's environment.
+pub fn spawn_from_pane(req: &SpawnRequest, caller: &str) -> Result<String, String> {
     if !crate::tmux::workspace::enabled() {
         return spawn_with(&RealEnv, req).map(|(pane, _)| pane);
     }
-    let host = crate::tmux::workspace::host_for_session(&req.session)?;
+    let host = crate::tmux::workspace::host_for_session_from_pane(&req.session, caller)?;
     let parking =
         crate::tmux::workspace::ensure_parking(&req.session, &req.repo_root.to_string_lossy())?;
     let mut parked = req.clone();

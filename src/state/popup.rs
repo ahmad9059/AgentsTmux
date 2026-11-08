@@ -455,7 +455,7 @@ impl AppState {
             agent,
             mode,
         };
-        match crate::worktree::spawn(&req) {
+        match crate::worktree::spawn_from_pane(&req, &self.tmux_pane) {
             Ok(_) => self.popup = PopupState::None,
             Err(e) => self.set_spawn_error(e),
         }

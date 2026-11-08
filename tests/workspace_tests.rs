@@ -21,6 +21,93 @@ fn command(program: &str, args: &[&str], cwd: &std::path::Path) {
 
 #[test]
 #[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
+fn first_popup_spawn_uses_its_sidebar_instead_of_inherited_pane() {
+    let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
+    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    let root = tempfile::tempdir().unwrap();
+    let location = root.path().to_str().unwrap();
+    let created = tmux::run_tmux_capture(&[
+        "new-session",
+        "-d",
+        "-s",
+        "popup-owner",
+        "-n",
+        "Agents",
+        "-c",
+        location,
+        "-P",
+        "-F",
+        "#{window_id}|#{pane_id}",
+        "sleep 600",
+    ])
+    .unwrap();
+    let (host, original) = created.split_once('|').unwrap();
+    let original_pid = tmux::display_message(original, "#{pane_pid}");
+    let sidebar = tmux::run_tmux_capture(&[
+        "split-window",
+        "-h",
+        "-t",
+        host,
+        "-P",
+        "-F",
+        "#{pane_id}",
+        "sleep 600",
+    ])
+    .unwrap();
+    tmux::run_tmux_capture(&["set-option", "-p", "-t", &sidebar, "@pane_role", "sidebar"]).unwrap();
+    tmux::run_tmux_capture(&["set-option", "-g", "@sidebar_single_window", "on"]).unwrap();
+    let foreign = tmux::run_tmux_capture(&[
+        "new-session",
+        "-d",
+        "-s",
+        "popup-foreign",
+        "-P",
+        "-F",
+        "#{pane_id}",
+        "sleep 600",
+    ])
+    .unwrap();
+
+    // This is the first spawn after tmux restart: no host is saved yet.
+    assert!(
+        tmux::display_message("popup-owner", &format!("#{{{}}}", tmux::workspace::HOST)).is_empty()
+    );
+    assert!(tmux::workspace::host_for_session_from_pane("popup-owner", "").is_err());
+    assert!(tmux::workspace::host_for_session_from_pane("popup-owner", &foreign).is_err());
+
+    let req = worktree::SpawnRequest {
+        repo_root: root.path().to_path_buf(),
+        directory: root.path().to_path_buf(),
+        session: "popup-owner".into(),
+        agent: "sleep 600".into(),
+        mode: "default".into(),
+    };
+    let agent = worktree::spawn_from_pane(&req, &sidebar).unwrap();
+    assert_eq!(tmux::display_message(&agent, "#{window_id}"), host);
+    assert_eq!(
+        tmux::display_message("popup-owner", &format!("#{{{}}}", tmux::workspace::HOST)),
+        host
+    );
+    assert_eq!(tmux::display_message(original, "#{pane_pid}"), original_pid);
+    assert_eq!(tmux::display_message(&sidebar, "#{window_id}"), host);
+    assert_eq!(
+        tmux::display_message(&foreign, "#{session_name}"),
+        "popup-foreign"
+    );
+
+    // A later request can reuse the registered host without popup metadata.
+    assert_eq!(
+        tmux::workspace::host_for_session_from_pane("popup-owner", "").unwrap(),
+        host
+    );
+    let parking = tmux::workspace::ensure_parking("popup-owner", location).unwrap();
+    tmux::run_tmux_capture(&["kill-session", "-t", "popup-owner"]).unwrap();
+    tmux::run_tmux_capture(&["kill-session", "-t", &parking]).unwrap();
+    tmux::run_tmux_capture(&["kill-session", "-t", "popup-foreign"]).unwrap();
+}
+
+#[test]
+#[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
 fn single_window_agents_keep_processes_and_worktree_ownership() {
     let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
     assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));

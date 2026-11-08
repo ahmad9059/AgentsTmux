@@ -22,15 +22,21 @@ pub fn is_parking_window(window: &str) -> bool {
 }
 
 pub fn host_for_session(session: &str) -> Result<String, String> {
+    let caller = std::env::var("TMUX_PANE").unwrap_or_default();
+    host_for_session_from_pane(session, &caller)
+}
+
+/// Popups are not tmux panes. Their environment can name a different pane
+/// or omit TMUX_PANE, so use the sidebar pane passed to the popup explicitly.
+pub fn host_for_session_from_pane(session: &str, caller: &str) -> Result<String, String> {
     let saved = display_message(session, &format!("#{{{HOST}}}"));
     if !saved.is_empty() && display_message(&saved, "#{session_name}") == session {
         return Ok(saved);
     }
-    let caller = std::env::var("TMUX_PANE").unwrap_or_default();
-    if caller.is_empty() || display_message(&caller, "#{session_name}") != session {
+    if caller.is_empty() || display_message(caller, "#{session_name}") != session {
         return Err("single-window mode needs an Agents host window".into());
     }
-    let host = display_message(&caller, "#{window_id}");
+    let host = display_message(caller, "#{window_id}");
     run_tmux_capture(&["set-option", "-t", session, HOST, &host])?;
     Ok(host)
 }
