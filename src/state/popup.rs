@@ -302,15 +302,7 @@ impl AppState {
             .find_map(|(_, git)| git.repo_root.clone())
             .unwrap_or_else(|| pane_path.clone());
         let name = group.name.clone();
-        // Anchor the popup directly below the repo header row so it
-        // matches what the mouse `+` click flow does.
-        let anchor = self
-            .layout
-            .repo_spawn_targets
-            .iter()
-            .find(|t| t.repo_name == name)
-            .map(|t| t.rect.y);
-        self.start_spawn_flow(name, root, anchor);
+        self.start_spawn_flow(name, root, None);
     }
 
     pub fn close_spawn_input(&mut self) {

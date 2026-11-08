@@ -215,7 +215,7 @@ fn snapshot_git_status_tab_ui() {
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -245,7 +245,7 @@ fn snapshot_git_clean_ui() {
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -275,7 +275,7 @@ fn snapshot_usage_tab_active_ui() {
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
      Claude Code · max
      5h ██████████░ 2h 00m  91%
@@ -306,7 +306,7 @@ fn snapshot_usage_tab_loading_ui() {
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -336,7 +336,7 @@ fn snapshot_usage_tab_opencode_local_spend_ui() {
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
      OpenCode
      Using   commandcode
@@ -436,7 +436,7 @@ fn snapshot_git_full_info_ui() {
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -587,7 +587,7 @@ fn snapshot_git_long_filename_truncated_ui() {
     let plain = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -669,7 +669,7 @@ fn snapshot_git_more_than_5_files() {
     let plain = render_to_string(&mut state, 28, 40);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
@@ -684,7 +684,7 @@ fn snapshot_git_more_than_5_files() {
     let scrolled = render_to_string(&mut state, 28, 40);
     insta::assert_snapshot!(scrolled, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
@@ -827,7 +827,7 @@ fn snapshot_subagents_tree_ui() {
     let output = render_to_string(&mut state, 40, 28);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                         + — 
-    project                                +
+    project
     ┃ ⠋ claude
         ├ Explore #1
         ├ Plan #2
@@ -862,7 +862,7 @@ fn snapshot_subagent_long_name_truncated_ui() {
     let output = render_to_string(&mut state, 28, 27);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
         ├ superpowers:code-revi…
         └ claude-code-guide #2
@@ -896,7 +896,7 @@ fn snapshot_git_clean_centered_ui() {
     let output = render_to_string(&mut state, 28, 26);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ○ claude
         Waiting for prompt…
      ───────── Usage ──────────
@@ -934,7 +934,7 @@ fn snapshot_git_branch_loaded_no_changes_shows_inline_clean() {
     let plain = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -965,7 +965,7 @@ fn snapshot_git_no_data_shows_centered_clean() {
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -1127,7 +1127,7 @@ fn snapshot_branch_truncated_ui() {
     let plain = render_to_string(&mut state, 28, 30);
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents             + — 
-    dotfiles                   +
+    dotfiles
     ┃ ⠋ claude
     ┃   feature/tmux-sidebar-da…
      ───────── Usage ──────────
@@ -1185,7 +1185,7 @@ fn snapshot_git_staged_unstaged_untracked_ui() {
     let output = render_to_string(&mut state, 28, 30);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
@@ -1225,7 +1225,7 @@ fn snapshot_git_long_branch_with_pr_ui() {
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -1264,7 +1264,7 @@ fn snapshot_git_staged_only_ui() {
     let output = render_to_string(&mut state, 28, 24);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -1303,7 +1303,7 @@ fn snapshot_git_many_files_more_indicator_ui() {
     let output = render_to_string(&mut state, 28, 30);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
@@ -1344,7 +1344,7 @@ fn snapshot_git_more_than_10_files_ui() {
     let output = render_to_string(&mut state, 28, 30);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
@@ -1390,10 +1390,10 @@ fn snapshot_focused_group_active_border_styled() {
     insta::assert_snapshot!(render_to_styled_string(&mut state, 28, 30), @"
     ⓘ[fg:208] [fg:39,bold] [fg:39,bold]A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold]             +[fg:255] —[fg:252] [fg:252]
 
-    d[fg:153]o[fg:153]t[fg:153]f[fg:153]i[fg:153]l[fg:153]e[fg:153]s[fg:153]                   +[fg:153]
+    d[fg:153]o[fg:153]t[fg:153]f[fg:153]i[fg:153]l[fg:153]e[fg:153]s[fg:153]
     ┃[fg:153] ⠋[fg:221] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]
 
-    m[fg:255]y[fg:255]-[fg:255]a[fg:255]p[fg:255]p[fg:255]                     +[fg:255]
+    m[fg:255]y[fg:255]-[fg:255]a[fg:255]p[fg:255]p[fg:255]
       ○[fg:114] [fg:141]c[fg:141]o[fg:141]d[fg:141]e[fg:141]x[fg:141]
        [fg:244] [fg:244]W[fg:244]a[fg:244]i[fg:244]t[fg:244]i[fg:244]n[fg:244]g[fg:244] [fg:244]f[fg:244]o[fg:244]r[fg:244] [fg:244]p[fg:244]r[fg:244]o[fg:244]m[fg:244]p[fg:244]t[fg:244]…[fg:244]
 
@@ -1432,7 +1432,7 @@ fn test_pet_enabled_preserves_bottom_panel_border() {
 
     insta::assert_snapshot!(render_to_string(&mut state, 40, 30), @"
     ⓘ  Agents                         + — 
-    project                                +
+    project
     ┃ ○ claude
         Waiting for prompt…
       ▄ ▄

@@ -10,7 +10,7 @@ use test_helpers::*;
 // ─── Agents: auto-scroll behavior Tests ─────────────────────────────
 
 #[test]
-fn plain_folder_and_header_have_independent_spawn_buttons() {
+fn universal_spawn_uses_plain_folder_without_duplicate_folder_buttons() {
     let mut pane = make_pane(AgentType::OpenCode, PaneStatus::Idle);
     pane.path = "/tmp/cyber".into();
     let mut state = make_state(vec![]);
@@ -25,7 +25,7 @@ fn plain_folder_and_header_have_independent_spawn_buttons() {
     let output = render_to_string(&mut state, 28, 10);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    cyber                      +
+    cyber
     ┃ ○ opencode
         Waiting for prompt…
     ");
@@ -36,12 +36,7 @@ fn plain_folder_and_header_have_independent_spawn_buttons() {
         matches!(&state.popup, agents_tmux::state::PopupState::SpawnInput { input, .. } if input == "/tmp/cyber")
     );
     state.close_spawn_input();
-    let folder = state.layout.repo_spawn_targets[0].clone();
-    assert_eq!(folder.repo_root, "/tmp/cyber");
-    state.handle_mouse_click(folder.rect.y, folder.rect.x);
-    assert!(
-        matches!(&state.popup, agents_tmux::state::PopupState::SpawnInput { input, .. } if input == "/tmp/cyber")
-    );
+    assert!(state.layout.repo_spawn_targets.is_empty());
 }
 
 #[test]
@@ -169,7 +164,7 @@ fn test_running_icon_blink_off() {
 
     insta::assert_snapshot!(render_to_string(&mut state, 28, 25), @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
@@ -196,7 +191,7 @@ fn test_running_spinner_frame_advances() {
 
     insta::assert_snapshot!(render_to_string(&mut state, 28, 25), @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠸ claude
      ───────── Usage ──────────
            Loading usage…
@@ -222,7 +217,7 @@ fn test_waiting_icon() {
 
     insta::assert_snapshot!(render_to_string(&mut state, 28, 25), @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ● claude
      ───────── Usage ──────────
            Loading usage…
@@ -248,7 +243,7 @@ fn test_error_icon() {
 
     insta::assert_snapshot!(render_to_string(&mut state, 28, 25), @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ◉ claude
      ───────── Usage ──────────
            Loading usage…
@@ -338,7 +333,7 @@ fn test_agents_auto_scroll_up_shows_group_header() {
     // scrolling back up to the first agent.
     insta::assert_snapshot!(render_to_string(&mut state, 28, 26), @"
     ⓘ  Agents             + — 
-    project                    +
+    project
       ○ claude
         Waiting for prompt…
      ───────── Usage ──────────
@@ -380,7 +375,7 @@ fn repo_popup_renders_repo_names_when_open() {
     ┃ ○ claude                  │ frontend │
         Waiting for prompt…     │ backend  │
                                 └──────────┘
-    backend                                +
+    backend
     ┃ ○ claude
         Waiting for prompt…
      ─────────────── Usage ────────────────
@@ -427,7 +422,7 @@ fn repo_popup_highlights_selected_entry_with_background() {
     ┃[fg:153] ○[fg:114] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]                  │[fg:153] [fg:252]f[fg:252]r[fg:252]o[fg:252]n[fg:252]t[fg:252]e[fg:252]n[fg:252]d[fg:252] [fg:252]│[fg:153]
        [fg:255] [fg:255]W[fg:255]a[fg:255]i[fg:255]t[fg:255]i[fg:255]n[fg:255]g[fg:255] [fg:255]f[fg:255]o[fg:255]r[fg:255] [fg:255]p[fg:255]r[fg:255]o[fg:255]m[fg:255]p[fg:255]t[fg:255]…[fg:255]     │[fg:153] [fg:255]b[fg:255]a[fg:255]c[fg:255]k[fg:255]e[fg:255]n[fg:255]d[fg:255] [fg:255] [fg:255]│[fg:153]
                                 └[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]┘[fg:153]
-    b[fg:153]a[fg:153]c[fg:153]k[fg:153]e[fg:153]n[fg:153]d[fg:153]                                +[fg:153]
+    b[fg:153]a[fg:153]c[fg:153]k[fg:153]e[fg:153]n[fg:153]d[fg:153]
     ┃[fg:153] ○[fg:114] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]
        [fg:255] [fg:255]W[fg:255]a[fg:255]i[fg:255]t[fg:255]i[fg:255]n[fg:255]g[fg:255] [fg:255]f[fg:255]o[fg:255]r[fg:255] [fg:255]p[fg:255]r[fg:255]o[fg:255]m[fg:255]p[fg:255]t[fg:255]…[fg:255]
 

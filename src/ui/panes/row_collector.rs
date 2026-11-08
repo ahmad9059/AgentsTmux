@@ -3,10 +3,9 @@ use ratatui::{
     text::{Line, Span},
 };
 
-use super::SPAWN_BUTTON;
 use super::row;
 use crate::state::{AppState, Focus};
-use crate::ui::text::{display_width, truncate_to_width};
+use crate::ui::text::truncate_to_width;
 
 #[derive(Debug, Default)]
 pub(super) struct CollectedRows {
@@ -52,48 +51,17 @@ pub(super) fn collect(state: &AppState, width: u16) -> CollectedRows {
             .as_ref()
             .is_some_and(|fid| group.panes.iter().any(|(p, _)| p.pane_id == *fid));
 
-        // Folder headers can spawn agents without requiring a Git repository.
+        // Creation has one entry point in the header, not a duplicate per folder.
         let title = &group.name;
         let title_color = if group_has_focused_pane {
             theme.accent
         } else {
             theme.text_active
         };
-        let repo_root = group
-            .panes
-            .iter()
-            .find_map(|(_, git)| git.repo_root.clone())
-            .or_else(|| {
-                group
-                    .panes
-                    .iter()
-                    .find_map(|(pane, _)| (!pane.path.is_empty()).then(|| pane.path.clone()))
-            });
-        let spans: Vec<Span<'static>> = if let Some(ref root) = repo_root.filter(|_| width > 0) {
-            let title = truncate_to_width(title, width.saturating_sub(SPAWN_BUTTON.len() + 1));
-            let title_w = display_width(&title);
-            let pad_width = width
-                .saturating_sub(title_w)
-                .saturating_sub(SPAWN_BUTTON.len());
-            collected
-                .pending_spawn
-                .push((collected.lines.len(), group.name.clone(), root.clone()));
-            let button_color = if group_has_focused_pane {
-                theme.accent
-            } else {
-                theme.text_active
-            };
-            vec![
-                Span::styled(title, Style::default().fg(title_color)),
-                Span::raw(" ".repeat(pad_width)),
-                Span::styled(SPAWN_BUTTON, Style::default().fg(button_color)),
-            ]
-        } else {
-            vec![Span::styled(
-                title.clone(),
-                Style::default().fg(title_color),
-            )]
-        };
+        let spans = vec![Span::styled(
+            truncate_to_width(title, width),
+            Style::default().fg(title_color),
+        )];
         collected.lines.push(Line::from(spans));
         collected.line_to_row.push(None);
 
@@ -215,7 +183,7 @@ mod tests {
             .collect::<Vec<_>>()
             .join("\n");
         insta::assert_snapshot!(snapshot, @"
-        repo                   + [highlight=false]
+        repo [highlight=false]
           ⠋ claude [highlight=false]
         ┃ ⠋ claude [highlight=true]
         ");
@@ -247,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn collect_records_pending_spawn_when_repo_root_present() {
+    fn git_folder_headers_do_not_duplicate_the_universal_spawn_button() {
         let mut state = AppState::new("%0".into());
         let git_info = PaneGitInfo {
             repo_root: Some("/tmp/repo".into()),
@@ -261,19 +229,13 @@ mod tests {
             panes: vec![(make_pane("%1", PaneStatus::Running), git_info)],
         }];
         let collected = collect(&state, 40);
-        assert_eq!(
-            collected.pending_spawn.len(),
-            1,
-            "groups with a repo_root should emit a spawn target"
-        );
-        assert_eq!(collected.pending_spawn[0].1, "repo");
-        assert_eq!(collected.pending_spawn[0].2, "/tmp/repo");
+        assert!(collected.pending_spawn.is_empty());
         // At least the header plus one pane row should have been pushed.
         assert!(!collected.lines.is_empty());
     }
 
     #[test]
-    fn collect_uses_folder_path_without_repo_root() {
+    fn plain_folder_headers_do_not_duplicate_the_universal_spawn_button() {
         let mut state = AppState::new("%0".into());
         state.repo_groups = vec![RepoGroup {
             name: "raw-path".into(),
@@ -281,12 +243,11 @@ mod tests {
             panes: vec![(make_pane("%1", PaneStatus::Running), PaneGitInfo::default())],
         }];
         let collected = collect(&state, 40);
-        assert_eq!(collected.pending_spawn.len(), 1);
-        assert_eq!(collected.pending_spawn[0].2, "/tmp/repo");
+        assert!(collected.pending_spawn.is_empty());
     }
 
     #[test]
-    fn collect_pending_spawn_grows_with_repo_root_bearing_groups() {
+    fn multiple_folders_do_not_add_duplicate_spawn_buttons() {
         let mut state = AppState::new("%0".into());
         let with_root = |root: &str, name: &str, pane_id: &str| RepoGroup {
             name: name.into(),
@@ -307,6 +268,6 @@ mod tests {
             with_root("/repo/c", "c", "%3"),
         ];
         let collected = collect(&state, 40);
-        assert_eq!(collected.pending_spawn.len(), 3);
+        assert!(collected.pending_spawn.is_empty());
     }
 }

@@ -121,7 +121,7 @@ fn snapshot_version_banner_does_not_duplicate_in_scroll_area() {
     let output = render_to_string(&mut state, 28, 10);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ○ claude
         Waiting for prompt…
     ");
@@ -148,7 +148,7 @@ fn snapshot_single_agent_running_with_elapsed() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    dotfiles                   +
+    dotfiles
     ┃ ⠋ claude              2m5s
      ───────── Usage ──────────
            Loading usage…
@@ -177,7 +177,7 @@ fn snapshot_long_session_name_truncated_keeps_elapsed_visible() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    dotfiles                   +
+    dotfiles
     ┃ ⠋ this-is-a-ridiculo… 2m5s
      ───────── Usage ──────────
            Loading usage…
@@ -204,7 +204,7 @@ fn running_spinner_different_frame() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
@@ -374,7 +374,7 @@ fn snapshot_two_windows_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project-a                  +
+    project-a
     ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
@@ -421,7 +421,7 @@ fn snapshot_multi_session_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    dotfiles                   +
+    dotfiles
     ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
@@ -504,7 +504,7 @@ fn snapshot_usage_tab_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
      ───────── Usage ──────────
      Claude Code · max
@@ -534,7 +534,7 @@ fn snapshot_usage_tab_opencode_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ opencode
      ───────── Usage ──────────
      OpenCode
@@ -598,7 +598,7 @@ fn snapshot_selected_unfocused_ui() {
     let output = render_to_string(&mut state, 28, 26);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ○ claude
         Waiting for prompt…
      ───────── Usage ──────────
@@ -873,7 +873,7 @@ fn snapshot_all_elements_combined_ui() {
     let output = render_to_string(&mut state, 30, 32);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    project                      +
+    project
     ┃ ● claude auto
     ┃   main
         ✔◼ 1/2
@@ -898,7 +898,7 @@ fn snapshot_response_japanese_ui() {
     let output = render_to_string(&mut state, 30, 27);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    project                      +
+    project
     ┃ ○ claude
       ▷ 修 正 が 完 了 し ま し た 。 テ ス ト
         も 全 て 通 っ て い ま す 。
@@ -931,12 +931,12 @@ fn snapshot_three_groups_middle_focused_ui() {
     let output = render_to_string(&mut state, 28, 33);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    repo-a                     +
+    repo-a
       ⠋ claude
-    repo-b                     +
+    repo-b
     ┃ ○ codex
         Waiting for prompt…
-    repo-c                     +
+    repo-c
       ○ claude
         Waiting for prompt…
      ───────── Usage ──────────
@@ -956,7 +956,7 @@ fn snapshot_bypass_all_badge_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude !
      ───────── Usage ──────────
            Loading usage…
@@ -973,7 +973,7 @@ fn snapshot_full_auto_badge_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude auto
      ───────── Usage ──────────
            Loading usage…
@@ -990,7 +990,7 @@ fn snapshot_plan_badge_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude plan
      ───────── Usage ──────────
            Loading usage…
@@ -1007,7 +1007,7 @@ fn snapshot_accept_edits_badge_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude edit
      ───────── Usage ──────────
            Loading usage…
@@ -1034,7 +1034,7 @@ fn snapshot_response_with_branch_ui() {
     let output = render_to_string(&mut state, 34, 27);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                   + — 
-    project                          +
+    project
     ┃ ○ claude
     ┃   feature/ui-v2
       ▷ Done. All tests are green.
@@ -1163,7 +1163,7 @@ fn snapshot_focus_activity_log_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude
      ───────── Usage ──────────
      Claude Code · max
@@ -1236,84 +1236,84 @@ fn right_border_all_permission_modes_and_agents() {
     insta::assert_snapshot!(composite, @"
     === Claude / Default ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude          1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / Auto ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude auto     1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / DontAsk ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude dontAsk  1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / Plan ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude plan     1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / AcceptEdits ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude edit     1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / BypassPermissions ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ claude !        1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / Default ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ codex           1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / Auto ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ codex auto      1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / DontAsk ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ codex dontAsk   1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / Plan ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ codex plan      1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / AcceptEdits ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ codex edit      1h30m32s
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / BypassPermissions ===
     ⓘ  Agents             + — 
-    project                    +
+    project
     ┃ ⠋ codex !         1h30m32s
      ───────── Usage ──────────
            Loading usage…
@@ -1337,7 +1337,7 @@ fn snapshot_filter_bar_shows_counts() {
     let output = render_to_string(&mut state, 30, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    project                      +
+    project
     ┃ ⠋ claude
      ────────── Usage ───────────
             Loading usage…
@@ -1360,7 +1360,7 @@ fn snapshot_filter_running_hides_idle() {
     let output = render_to_string(&mut state, 30, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    project                      +
+    project
     ┃ ⠋ claude
      ────────── Usage ───────────
             Loading usage…
@@ -1409,7 +1409,7 @@ fn snapshot_filter_hides_empty_groups() {
     let output = render_to_string(&mut state, 30, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    repo-a                       +
+    repo-a
     ┃ ⠋ claude
      ────────── Usage ───────────
             Loading usage…
@@ -1432,7 +1432,7 @@ fn snapshot_filter_all_shows_everything() {
     let output = render_to_string(&mut state, 30, 30);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    project                      +
+    project
     ┃ ⠋ claude
       ○ codex
         Waiting for prompt…
@@ -1580,13 +1580,13 @@ fn make_state_for_popup_tests(groups: Vec<RepoGroup>) -> agents_tmux::state::App
 }
 
 #[test]
-fn snapshot_repo_header_shows_spawn_plus_button() {
+fn snapshot_universal_spawn_button_is_not_duplicated_on_repo_header() {
     let pane = make_pane(AgentType::Claude, PaneStatus::Idle);
     let mut state = make_state_for_popup_tests(vec![repo_group_with_root("proj", vec![pane])]);
     let output = render_to_string(&mut state, 30, 15);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    proj                         +
+    proj
     ┃ ○ claude
     ┃   main
         Waiting for prompt…
@@ -1604,7 +1604,7 @@ fn snapshot_spawn_modal_default_state() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                   + — 
      ╭ New agent ───────────────────╮
-    p│                              │+
+    p│                              │
     ┃│ FOLDER                       │
     ┃│ /home/u/proj█                │
      │ AGENT                        │
@@ -1618,27 +1618,25 @@ fn snapshot_spawn_modal_default_state() {
 }
 
 #[test]
-fn snapshot_spawn_modal_anchors_directly_below_repo_header() {
+fn snapshot_spawn_modal_centers_for_selected_repository() {
     let pane = make_pane(AgentType::Claude, PaneStatus::Idle);
     let mut state = make_state_for_popup_tests(vec![repo_group_with_root("proj", vec![pane])]);
-    // Render once so layout.repo_spawn_targets is populated, then
-    // drive the same code path the keyboard `n` handler takes — it
-    // must resolve the anchor from the rendered `+` target so the
-    // popup opens right below the repo header row (row 2).
+    // Keyboard and header creation share a centered form for the selection.
     let _ = render_to_string(&mut state, 34, 18);
     state.global.selected_pane_row = 0;
     state.open_spawn_input_from_selection();
     let output = render_to_string(&mut state, 34, 18);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                   + — 
-    ╭ New agent ───────────────────╮ +
-    │ FOLDER                       │
-    │ /home/u/proj█                │
-    │ AGENT                        │
-    │ claude                       │
-    │ MODE                         │
-    │ default                      │
-    ╰──────────────────────────────╯
+     ╭ New agent ───────────────────╮
+    p│                              │
+    ┃│ FOLDER                       │
+    ┃│ /home/u/proj█                │
+     │ AGENT                        │
+     │ claude                       │
+     │ MODE                         │
+     │ default                      │
+     ╰──────────────────────────────╯
      ──────────── Usage ─────────────
               Loading usage…
     ");
@@ -1660,7 +1658,7 @@ fn snapshot_spawn_modal_advance_fields_cycles_agent_and_mode() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                   + — 
      ╭ New agent ───────────────────╮
-    p│                              │+
+    p│                              │
     ┃│ FOLDER                       │
     ┃│ /home/u/projadd login        │
      │ AGENT                        │
@@ -1685,7 +1683,7 @@ fn snapshot_spawn_modal_tail_fits_long_task_name() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                   + — 
      ╭ New agent ───────────────────╮
-    p│                              │+
+    p│                              │
     ┃│ FOLDER                       │
     ┃│ …re-authentication-pipeline█ │
      │ AGENT                        │
@@ -1737,7 +1735,7 @@ fn snapshot_spawn_modal_compact_layout_in_short_agent_area() {
     let output = render_to_string(&mut state, 40, 14);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                         + — 
-    proj╭ New agent ───────────────────╮   +
+    proj╭ New agent ───────────────────╮
     ┃ ○ │ /home/u/projhi█              │
     ┃   │ claude                       │
         │ default                      │
@@ -1757,7 +1755,7 @@ fn snapshot_spawn_modal_compact_layout_shows_inline_error() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                         + — 
         ╭ New agent ───────────────────╮
-    proj│ /home/u/proj█                │   +
+    proj│ /home/u/proj█                │
     ┃ ○ │ claude                       │
     ┃   │ default                      │
         │ not a folder: /home/u/proj   │
@@ -1804,7 +1802,7 @@ fn snapshot_sidebar_spawned_pane_appends_trailing_remove_marker() {
     let output = render_to_string(&mut state, 30, 20);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    proj                         +
+    proj
     ┃ ○ claude
     ┃   + main
         Waiting for prompt…
@@ -1942,7 +1940,7 @@ fn snapshot_sidebar_spawned_long_branch_truncates_and_keeps_x() {
     let output = render_to_string(&mut state, 24, 20);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents         + — 
-    proj                   +
+    proj
       ○ claude
         + feature/really-l…×
         Waiting for prompt…
@@ -1983,7 +1981,7 @@ fn snapshot_sidebar_spawned_coexists_with_port_display() {
     let output = render_to_string(&mut state, 30, 20);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    proj                         +
+    proj
       ○ claude
         + feat/srv         :3000 ×
         Waiting for prompt…
@@ -2006,7 +2004,7 @@ fn snapshot_remove_confirm_modal_shows_three_options() {
     let output = render_to_string(&mut state, 50, 18);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                                   + — 
-    proj                                             +
+    proj
     ┃ ○ claude
     ┃   main   ╭ add-login ───────────────╮
         Waiting│[y] remove worktree       │
@@ -2030,7 +2028,7 @@ fn snapshot_spawn_modal_shows_inline_error_when_task_empty() {
     let output = render_to_string(&mut state, 34, 18);
     insta::assert_snapshot!(output, @"
     ⓘ╭ New agent ───────────────────╮
-    p│ FOLDER                       │+
+    p│ FOLDER                       │
     ┃│ /home/u/proj█                │
     ┃│                              │
      │ AGENT                        │
@@ -2075,7 +2073,7 @@ fn snapshot_remove_confirm_modal_shows_inline_error() {
     let output = render_to_string(&mut state, 50, 18);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                                   + — 
-    proj                                             +
+    proj
     ┃ ○ claude ╭ add-login ───────────────╮
     ┃   main   │[y] remove worktree       │
         Waiting│[c] close window only     │
@@ -2186,7 +2184,7 @@ fn snapshot_remove_confirm_modal_for_a_plain_folder_agent_offers_only_close() {
     let output = render_to_string(&mut state, 50, 18);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                                   + — 
-    proj                                             +
+    proj
     ┃ ○ claude
     ┃   main
         Waiting╭ app ─────────────────────╮

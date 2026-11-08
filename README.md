@@ -158,12 +158,12 @@ Otherwise, use the binary in `bin/` or `target/release/` inside the plugin folde
 | Click an agent | Show that agent in the right pane |
 | **j/k** or arrow keys | Move the sidebar selection |
 | **Enter** | Show the selected agent |
-| Folder **+** button | Open the new-agent form |
+| Header **+** button | Open the new-agent form for the selected agent's folder |
 | Agent **×** button | Open removal options |
 
 ### Start an agent
 
-1. Select the folder's **+** button.
+1. Select the header's **+** button.
 2. Select the agent and permission mode in the form.
 3. Keep the folder path or enter another existing folder.
 4. Submit the form.
