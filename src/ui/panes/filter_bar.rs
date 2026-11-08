@@ -31,7 +31,9 @@ pub(super) fn render_secondary_header<'a>(
     let has_notices_info = crate::ui::notices::has_info(state);
     let notices_button_col = has_notices_info.then_some(0);
     let notices_width = crate::ui::notices::BUTTON_WIDTH;
-    let max_repo_label_width = width.saturating_sub((notices_width + 3) as u16) as usize;
+    let spawn_width = if width >= 5 { 2 } else { 0 };
+    let max_repo_label_width =
+        width.saturating_sub((notices_width + 3 + spawn_width) as u16) as usize;
     let repo_label = match &state.global.repo_filter {
         RepoFilter::All => "—".to_string(),
         RepoFilter::Repo(name) => truncate_to_width(name, max_repo_label_width),
@@ -41,10 +43,10 @@ pub(super) fn render_secondary_header<'a>(
     // The title sits after the notices badge (or at the left edge without
     // one) and gives way to the repo filter when the sidebar is narrow.
     let slot = if has_notices_info { notices_width } else { 0 };
-    let title_room = (width as usize).saturating_sub(repo_btn_width + slot + 1);
+    let title_room = (width as usize).saturating_sub(repo_btn_width + spawn_width + slot + 1);
     let title = truncate_to_width(TITLE, title_room);
     let used = slot + display_width(&title);
-    let gap = (width as usize).saturating_sub(repo_btn_width + used);
+    let gap = (width as usize).saturating_sub(repo_btn_width + spawn_width + used);
     let repo_button_col = Some((width as usize).saturating_sub(repo_btn_width) as u16);
 
     let mut spans: Vec<Span<'a>> = Vec::new();
@@ -59,6 +61,10 @@ pub(super) fn render_secondary_header<'a>(
             .add_modifier(Modifier::BOLD),
     ));
     spans.push(Span::raw(" ".repeat(gap)));
+    if spawn_width > 0 {
+        spans.push(Span::styled("+", Style::default().fg(theme.text_active)));
+        spans.push(Span::raw(" "));
+    }
     spans.push(Span::styled(repo_label, repo_style));
     spans.push(Span::raw(" "));
     spans.push(Span::styled(repo_icon, repo_style));
@@ -92,7 +98,7 @@ mod tests {
         });
 
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents               + — ");
     }
 
     #[test]
@@ -120,7 +126,7 @@ mod tests {
     fn snapshot_secondary_header_without_notices_info() {
         let state = AppState::new(String::new());
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @" Agents                   — ");
+        insta::assert_snapshot!(text, @" Agents                 + — ");
     }
 
     #[test]
@@ -131,7 +137,7 @@ mod tests {
             latest_version: "0.2.7".into(),
         });
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents               + — ");
     }
 
     #[test]
@@ -142,7 +148,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents               + — ");
     }
 
     #[test]
@@ -157,7 +163,7 @@ mod tests {
             hooks: vec!["SessionStart".into()],
         }];
         let text = line_text(&render_secondary_header(&state, 30).0);
-        insta::assert_snapshot!(text, @"ⓘ  Agents                 — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents               + — ");
     }
 
     // ─── secondary header tests ───────────────────────────────
@@ -191,7 +197,7 @@ mod tests {
 
         let (line, notices_col, repo_col) = render_secondary_header(&state, 28);
         let text = line_text(&line);
-        insta::assert_snapshot!(text, @"ⓘ  Agents               — ");
+        insta::assert_snapshot!(text, @"ⓘ  Agents             + — ");
         // Click-target columns are layout state, not visible characters,
         // so they stay as direct equality checks alongside the snapshot.
         assert_eq!(notices_col, Some(0));

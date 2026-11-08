@@ -464,6 +464,11 @@ fn render_secondary_header_into(frame: &mut Frame, state: &mut AppState, area: R
         filter_bar::render_secondary_header(state, area.width);
     state.notices.button_col = notices_btn_col;
     state.layout.repo_button_col = repo_btn_col;
+    state.layout.spawn_button_col = if area.width >= 5 {
+        repo_btn_col.and_then(|col| col.checked_sub(2))
+    } else {
+        None
+    };
     frame.render_widget(Paragraph::new(vec![line]), area);
 }
 

@@ -52,6 +52,8 @@ pub struct FrameLayout {
     /// X column of the repo filter button in the secondary header. `None`
     /// when the button is hidden. Used for click hit-testing.
     pub repo_button_col: Option<u16>,
+    /// Universal new-agent button immediately before the repository filter.
+    pub spawn_button_col: Option<u16>,
     /// Click regions for the `[+]` spawn button rendered at the right
     /// edge of each repo-group header. One entry per visible repo group.
     pub repo_spawn_targets: Vec<RepoSpawnTarget>,
@@ -162,6 +164,10 @@ impl AppState {
     /// Handle mouse click on the secondary header row (row 1).
     /// The repo filter button lives on the far right of this row.
     pub fn handle_secondary_header_click(&mut self, col: u16) {
+        if self.layout.spawn_button_col == Some(col) {
+            self.open_spawn_input_from_selection();
+            return;
+        }
         if self
             .notices
             .button_col

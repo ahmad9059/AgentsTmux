@@ -268,7 +268,22 @@ impl AppState {
 
     pub fn open_spawn_input_from_selection(&mut self) {
         let Some(pane) = self.selected_pane() else {
-            self.set_flash("spawn: no pane selected");
+            let cwd = if self.tmux_pane.is_empty() {
+                String::new()
+            } else {
+                crate::tmux::display_message(&self.tmux_pane, "#{pane_current_path}")
+            };
+            let cwd = if cwd.is_empty() {
+                std::env::var("HOME").unwrap_or_else(|_| "/".into())
+            } else {
+                cwd
+            };
+            let name = std::path::Path::new(&cwd)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("New agent")
+                .to_string();
+            self.start_spawn_flow(name, cwd, None);
             return;
         };
         let pane_id = pane.pane_id.clone();
