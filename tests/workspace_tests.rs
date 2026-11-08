@@ -348,7 +348,13 @@ fn the_window_switches_to_another_agent_when_the_visible_one_exits() {
         "@agent-sidebar-spawned",
         "1",
     ]);
-    let parked = new_session("fallback-park", second.path());
+    let owner_id = tmux::display_message(host, "#{session_id}");
+    let parking_name = format!(
+        "{}{}",
+        tmux::workspace::PARKING_PREFIX,
+        owner_id.trim_start_matches('$')
+    );
+    let parked = new_session(&parking_name, second.path());
     let agent_b = parked.split_once('|').unwrap().1.to_string();
     mark(&agent_b, "claude");
 
@@ -384,5 +390,141 @@ fn the_window_switches_to_another_agent_when_the_visible_one_exits() {
     );
     // The holding session ends on its own once its only pane is closed.
     let _ = tmux::run_tmux_capture(&["kill-session", "-t", "fallback-owner"]);
-    let _ = tmux::run_tmux_capture(&["kill-session", "-t", "fallback-park"]);
+    let _ = tmux::run_tmux_capture(&["kill-session", "-t", &parking_name]);
+}
+
+#[test]
+#[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
+fn sidebars_are_isolated_by_session_including_parked_agents_and_view_state() {
+    use agents_tmux::state::{AppState, GlobalState, RepoFilter, StatusFilter};
+    let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
+    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("shared");
+    std::fs::create_dir(&folder).unwrap();
+    let fake = root.path().join("claude");
+    std::os::unix::fs::symlink("/bin/sleep", &fake).unwrap();
+    let cmd = format!("{} 600", fake.display());
+    let location = folder.to_str().unwrap();
+    let set = |pane: &str, key: &str, value: &str| {
+        tmux::run_tmux_capture(&["set-option", "-p", "-t", pane, key, value]).unwrap();
+    };
+    let create = |name: &str| {
+        let row = tmux::run_tmux_capture(&[
+            "new-session",
+            "-d",
+            "-s",
+            name,
+            "-n",
+            "Agents",
+            "-c",
+            location,
+            "-P",
+            "-F",
+            "#{session_id}|#{pane_id}",
+            &cmd,
+        ])
+        .unwrap();
+        let (id, agent) = row.split_once('|').unwrap();
+        let sidebar = tmux::run_tmux_capture(&[
+            "split-window",
+            "-h",
+            "-d",
+            "-t",
+            agent,
+            "-P",
+            "-F",
+            "#{pane_id}",
+            "sleep 600",
+        ])
+        .unwrap();
+        set(&sidebar, "@pane_role", "sidebar");
+        set(agent, "@pane_agent", "claude");
+        set(agent, "@pane_status", "idle");
+        let parking = tmux::workspace::ensure_parking(name, location).unwrap();
+        let parked = tmux::run_tmux_capture(&[
+            "new-window",
+            "-d",
+            "-t",
+            &parking,
+            "-c",
+            location,
+            "-P",
+            "-F",
+            "#{pane_id}",
+            &cmd,
+        ])
+        .unwrap();
+        set(&parked, "@pane_agent", "claude");
+        set(&parked, "@pane_status", "idle");
+        (id.to_string(), agent.to_string(), sidebar, parked, parking)
+    };
+    let (id_a, agent_a, sidebar_a, parked_a, parking_a) = create("session-a");
+    let (id_b, agent_b, sidebar_b, parked_b, parking_b) = create("session-b");
+    // Old server-global values must not leak into either new session.
+    tmux::run_tmux_capture(&["set-option", "-g", tmux::SIDEBAR_CURSOR, "77"]).unwrap();
+    tmux::run_tmux_capture(&[
+        "set-option",
+        "-g",
+        tmux::SIDEBAR_REPO_FILTER,
+        "legacy-hidden",
+    ])
+    .unwrap();
+    let mut a = AppState::new(sidebar_a);
+    let mut b = AppState::new(sidebar_b);
+    a.refresh();
+    b.refresh();
+    let ids = |state: &AppState| {
+        state
+            .repo_groups
+            .iter()
+            .flat_map(|g| g.panes.iter().map(|(p, _)| p.pane_id.clone()))
+            .collect::<std::collections::HashSet<_>>()
+    };
+    assert_eq!(
+        ids(&a),
+        [agent_a.clone(), parked_a.clone()].into_iter().collect()
+    );
+    assert_eq!(
+        ids(&b),
+        [agent_b.clone(), parked_b.clone()].into_iter().collect()
+    );
+    assert_eq!(a.global.repo_filter, RepoFilter::All);
+    assert_eq!(b.global.repo_filter, RepoFilter::All);
+    a.global.selected_pane_row = 1;
+    assert!(a.global.save_cursor());
+    a.global.repo_filter = RepoFilter::Repo("only-a".into());
+    a.global.save_repo_filter();
+    a.global.status_filter = StatusFilter::Running;
+    a.global.save_filter();
+    b.global.selected_pane_row = 0;
+    assert!(b.global.save_cursor());
+    b.global.repo_filter = RepoFilter::Repo("only-b".into());
+    b.global.save_repo_filter();
+    let mut restored = GlobalState::new();
+    restored.bind_session(&id_a);
+    restored.load_from_tmux();
+    assert_eq!(restored.selected_pane_row, 1);
+    assert_eq!(restored.repo_filter, RepoFilter::Repo("only-a".into()));
+    assert_eq!(restored.status_filter, StatusFilter::Running);
+    restored.bind_session(&id_b);
+    restored.load_from_tmux();
+    assert_eq!(restored.selected_pane_row, 0);
+    assert_eq!(restored.repo_filter, RepoFilter::Repo("only-b".into()));
+    assert_eq!(restored.status_filter, StatusFilter::All);
+    assert_eq!(
+        tmux::get_option(tmux::SIDEBAR_CURSOR).as_deref(),
+        Some("77")
+    );
+
+    a.global.repo_filter = RepoFilter::All;
+    a.global.save_repo_filter();
+    a.global.status_filter = StatusFilter::All;
+    a.global.save_filter();
+    tmux::run_tmux_capture(&["rename-session", "-t", &id_a, "session-a-renamed"]).unwrap();
+    a.refresh();
+    assert_eq!(ids(&a), [agent_a, parked_a].into_iter().collect());
+    for session in [&id_a, &id_b, &parking_a, &parking_b] {
+        tmux::run_tmux_capture(&["kill-session", "-t", session]).unwrap();
+    }
 }

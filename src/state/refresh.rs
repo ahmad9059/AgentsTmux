@@ -154,7 +154,21 @@ impl AppState {
     pub fn refresh(&mut self) -> bool {
         self.refresh_now();
         let (focused, window_active, _, _) = tmux::get_sidebar_pane_info(&self.tmux_pane);
-        let (mut sessions, mut process_snapshot) = tmux::query_sessions_with_process_snapshot();
+        let identity = tmux::display_message(&self.tmux_pane, "#{session_id}|#{session_name}");
+        let Some((session_id, session_name)) = identity
+            .split_once('|')
+            .filter(|(id, name)| !id.is_empty() && !name.is_empty())
+        else {
+            self.apply_session_snapshot(focused, Vec::new());
+            return window_active;
+        };
+        if self.global.bind_session(session_id) {
+            self.global.load_from_tmux();
+            self.usage = super::UsageState::new();
+            self.exit_fallback = super::fallback::ExitFallback::default();
+        }
+        let (mut sessions, mut process_snapshot) =
+            tmux::query_session_with_process_snapshot(session_id, session_name);
         self.sweep_dead_bg_shells_if_due(&mut sessions, &mut process_snapshot);
         if let Some(process_snapshot) = self.refresh_port_data(&sessions, process_snapshot.as_ref())
         {

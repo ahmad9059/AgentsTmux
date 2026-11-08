@@ -5,9 +5,10 @@ use crate::tmux;
 
 use super::filter::{RepoFilter, StatusFilter};
 
-/// State shared across all sidebar instances via tmux global variables.
+/// View state shared only by sidebars in the same tmux session.
 /// Synced from tmux at startup and on pane focus change (SIGUSR1).
 pub struct GlobalState {
+    session: Option<String>,
     pub status_filter: StatusFilter,
     pub selected_pane_row: usize,
     pub repo_filter: RepoFilter,
@@ -30,6 +31,7 @@ impl Default for GlobalState {
 impl GlobalState {
     pub fn new() -> Self {
         Self {
+            session: None,
             status_filter: StatusFilter::All,
             selected_pane_row: 0,
             repo_filter: RepoFilter::All,
@@ -40,34 +42,39 @@ impl GlobalState {
         }
     }
 
-    /// Save filter to tmux global variable.
+    /// Stable tmux session IDs keep view state isolated through renames.
+    /// Return true when a sidebar starts or moves into another session.
+    pub fn bind_session(&mut self, session_id: &str) -> bool {
+        if self.session.as_deref() == Some(session_id) {
+            return false;
+        }
+        *self = Self::new();
+        self.session = Some(session_id.to_string());
+        true
+    }
+
+    fn write_option(&self, key: &str, value: &str) -> bool {
+        match self.session.as_deref() {
+            Some(session) => tmux::run_tmux(&["set-option", "-t", session, key, value]),
+            None => None,
+        }
+        .is_some()
+    }
+
+    /// Save the filter in this session's tmux options.
     /// Only updates `last_saved_filter` on success so that a failed write
     /// does not cause sync to overwrite the user's choice.
     pub fn save_filter(&mut self) {
-        if tmux::run_tmux(&[
-            "set",
-            "-g",
-            tmux::SIDEBAR_FILTER,
-            self.status_filter.as_str(),
-        ])
-        .is_some()
-        {
+        if self.write_option(tmux::SIDEBAR_FILTER, self.status_filter.as_str()) {
             self.last_saved_filter = self.status_filter;
         }
     }
 
-    /// Save cursor position to tmux global variable. Returns `true` when
+    /// Save the cursor in this session's tmux options. Returns `true` when
     /// tmux accepted the write so callers can decide whether to clear a
     /// queued save or keep retrying.
     pub fn save_cursor(&mut self) -> bool {
-        if tmux::run_tmux(&[
-            "set",
-            "-g",
-            tmux::SIDEBAR_CURSOR,
-            &self.selected_pane_row.to_string(),
-        ])
-        .is_some()
-        {
+        if self.write_option(tmux::SIDEBAR_CURSOR, &self.selected_pane_row.to_string()) {
             self.last_saved_cursor = self.selected_pane_row;
             true
         } else {
@@ -101,24 +108,28 @@ impl GlobalState {
         }
     }
 
-    /// Save repo filter to tmux global variable.
+    /// Save the repo filter in this session's tmux options.
     pub fn save_repo_filter(&mut self) {
-        if tmux::run_tmux(&[
-            "set",
-            "-g",
-            tmux::SIDEBAR_REPO_FILTER,
-            self.repo_filter.as_str(),
-        ])
-        .is_some()
-        {
+        if self.write_option(tmux::SIDEBAR_REPO_FILTER, self.repo_filter.as_str()) {
             self.last_saved_repo_filter = self.repo_filter.clone();
         }
     }
 
-    /// Load all global state from tmux variables.
+    /// Load view state without inheriting other sessions' legacy values.
     /// Called at startup and on SIGUSR1 (pane focus change).
     pub fn load_from_tmux(&mut self) {
-        let opts = tmux::get_all_global_options();
+        let opts = match self.session.as_deref() {
+            Some(session) => tmux::run_tmux(&["show-options", "-t", session])
+                .map(|output| {
+                    output
+                        .lines()
+                        .filter_map(|line| line.split_once(' '))
+                        .map(|(key, value)| (key.to_string(), value.trim_matches('"').to_string()))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            None => HashMap::new(),
+        };
         self.apply_all(&opts);
     }
 
@@ -145,5 +156,25 @@ impl GlobalState {
                 self.last_saved_repo_filter = tmux_repo;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn changing_session_resets_local_view_and_pending_writes() {
+        let mut state = GlobalState::new();
+        assert!(state.bind_session("$1"));
+        state.selected_pane_row = 3;
+        state.repo_filter = RepoFilter::Repo("first".into());
+        state.queue_cursor_save();
+        assert!(!state.bind_session("$1"));
+        assert_eq!(state.selected_pane_row, 3);
+        assert!(state.bind_session("$2"));
+        assert_eq!(state.selected_pane_row, 0);
+        assert_eq!(state.repo_filter, RepoFilter::All);
+        assert!(state.pending_cursor_save_since.is_none());
     }
 }

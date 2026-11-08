@@ -2,15 +2,23 @@
 
 ## State Scope & Update Frequency
 
-Every piece of state belongs to one of three scopes: **Global** (shared across all sidebar instances via tmux variables), **Per-pane** (keyed by tmux pane ID), or **Local** (single sidebar process only). The table below shows where each field lives, how often it updates, and what triggers the update.
+State has four scopes: **Global**, **Per-session**, **Per-pane**, and **Local**.
+Global options configure appearance and plugin defaults. Per-session options store each session's sidebar view.
+Per-pane state uses tmux pane IDs. Local state belongs to one sidebar process.
 
-### Global State (synced via tmux global variables)
+### Session View State
 
-Stored in `GlobalState`. Written to tmux on change, with the cursor save
-debounced briefly so selection changes do not block redraw/input handling;
-reloaded on SIGUSR1.
+`GlobalState` retains its historical type name, but its options belong to one tmux session.
+The sidebar binds this state to its stable tmux session ID.
+Cursor writes wait briefly after navigation. This delay prevents each keypress from blocking rendering.
+Sidebars in the same session share the saved view. Other sessions have independent views.
+Legacy server-global cursor and filter values do not supply session defaults.
 
-| Field | Tmux Variable | Update Trigger | Description |
+The pane query includes the sidebar's session and its `__agent-sidebar-<session-id>` holding session.
+Filtering occurs before pane deduplication and process checks. This prevents another session's panes from affecting the sidebar's list or cleanup.
+Session renames do not change the holding session name or the scope of saved view options.
+
+| Field | Session Option | Update Trigger | Description |
 |-------|--------------|----------------|-------------|
 | `status_filter` | `@sidebar_filter` | User input (left/right key) | Active status filter (All/Running/Background/Waiting/Idle/Error) |
 | `selected_pane_row` | `@sidebar_cursor` | User input (j/k key); tmux write flushed after a short debounce | Cursor position in agent list |
@@ -340,7 +348,7 @@ struct NoticesState {
 3. Tab preferences persist per pane in `PaneRuntimeState.tab_pref` and are restored on focus change. They vanish together with the rest of `PaneRuntimeState` when the pane is pruned, so a relaunched agent starts on the default tab
 4. Git fetching respects the `git_tab_active` flag — stops when tab is hidden
 5. Task progress has a 3-second debounce — prevents flicker when agent briefly pauses
-6. Global state syncs via tmux variables — enables coordination across sidebar instances
+6. View state uses session-scoped tmux options. Sidebars in different sessions do not share agent lists, cursor positions, or repository filters.
 7. Scroll positions are independent per panel — agents, usage, git each have their own `ScrollState`
 8. `layout.line_to_row` is rebuilt every frame — ensures accurate click routing
 9. Pane runtime state is pruned when the pane disappears — prevents stale per-pane ports, task progress, and tab preferences from surviving after the agent is gone

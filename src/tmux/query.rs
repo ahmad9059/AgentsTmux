@@ -118,12 +118,36 @@ pub fn query_sessions() -> Vec<SessionInfo> {
 
 pub(crate) fn query_sessions_with_process_snapshot() -> (Vec<SessionInfo>, Option<ProcessSnapshot>)
 {
+    query_sessions_with_scope(None)
+}
+
+/// Scope before deduplication and process-backed cleanup. Otherwise a pane
+/// in another session can affect this sidebar, including grouped sessions.
+pub(crate) fn query_session_with_process_snapshot(
+    session_id: &str,
+    session_name: &str,
+) -> (Vec<SessionInfo>, Option<ProcessSnapshot>) {
+    let parking = format!(
+        "{}{}",
+        super::workspace::PARKING_PREFIX,
+        session_id.trim_start_matches('$')
+    );
+    query_sessions_with_scope(Some((session_name, &parking)))
+}
+
+fn query_sessions_with_scope(
+    scope: Option<(&str, &str)>,
+) -> (Vec<SessionInfo>, Option<ProcessSnapshot>) {
     let pane_format = pane_format();
     let all_panes_output = match run_tmux(&["list-panes", "-a", "-F", &pane_format]) {
         Some(s) => s,
         None => return (vec![], None),
     };
 
+    let all_panes_output = match scope {
+        Some((owner, parking)) => scope_pane_output(&all_panes_output, owner, parking),
+        None => all_panes_output,
+    };
     let process_snapshot = process_snapshot_for_panes(&all_panes_output);
     let (mut sessions_map, codex_pids) =
         build_session_hierarchy(&all_panes_output, process_snapshot.as_ref());
@@ -133,6 +157,19 @@ pub(crate) fn query_sessions_with_process_snapshot() -> (Vec<SessionInfo>, Optio
         resolve_codex_permission_modes(&mut sessions_map, &codex_pids, snapshot);
     }
     (finalize_sessions(sessions_map), process_snapshot)
+}
+
+fn scope_pane_output(output: &str, owner: &str, parking: &str) -> String {
+    output
+        .lines()
+        .filter(|line| {
+            let fields = split_tmux_fields(line, '|');
+            fields
+                .first()
+                .is_some_and(|name| name == owner || name == parking)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// Parse the raw `tmux list-panes` output into an indexed session→window→pane
@@ -576,6 +613,25 @@ fn split_tmux_fields(line: &str, delimiter: char) -> Vec<String> {
 mod tests {
     use super::super::options::test_mock;
     use super::*;
+
+    #[test]
+    fn session_scope_includes_only_owner_and_its_parking_session() {
+        let output = "work|@1|pane-a\nother|@2|pane-b\n__agent-sidebar-7|@3|parked-a\n__agent-sidebar-8|@4|parked-b";
+        assert_eq!(
+            scope_pane_output(output, "work", "__agent-sidebar-7"),
+            "work|@1|pane-a\n__agent-sidebar-7|@3|parked-a"
+        );
+        assert_eq!(scope_pane_output(output, "empty", "__agent-sidebar-9"), "");
+    }
+
+    #[test]
+    fn session_scope_decodes_quoted_session_names() {
+        let output = "work\\|docs|@1|mine\nwork|@2|not-mine\n__agent-sidebar-3|@3|parked";
+        assert_eq!(
+            scope_pane_output(output, "work|docs", "__agent-sidebar-3"),
+            "work\\|docs|@1|mine\n__agent-sidebar-3|@3|parked"
+        );
+    }
 
     #[test]
     fn detect_codex_permission_mode_variants() {

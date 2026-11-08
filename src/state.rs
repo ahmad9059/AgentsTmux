@@ -125,7 +125,7 @@ pub struct AppState {
     pub pet_working_paper_seed: usize,
     /// Update notice shown when a newer GitHub release is available.
     pub version_notice: Option<crate::version::UpdateNotice>,
-    /// Shared state across sidebar instances, persisted to tmux global variables.
+    /// View state shared by sidebars in the same tmux session only.
     pub global: GlobalState,
     /// Height of the bottom panel in lines. Loaded once at startup from
     /// the `@sidebar_bottom_height` tmux option. A value of 0 hides the panel.

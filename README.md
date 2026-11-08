@@ -5,6 +5,8 @@ A tmux sidebar for Claude Code, Codex, OpenCode, and Pi.
 Keep your agents in one tmux window. Select an agent to show its live terminal beside the sidebar.
 Other agents continue to run in the background.
 
+Each tmux session has its own sidebar view. Agent lists, selected rows, and repository filters do not affect other sessions.
+
 ![AgentsTmux in a live tmux workspace with OpenCode selected, grouped agents, and provider usage](assets/readme/live-workspace.png)
 
 Live workspace with OpenCode selected. The sidebar groups agents by folder and shows usage for the visible agent.
@@ -22,6 +24,7 @@ This screenshot shows the real sidebar with an isolated demo session. Conversati
 
 - **One window for agents.** Switch agents without adding a tmux window for each agent.
   Each agent keeps its process, conversation, and terminal history.
+- **Separate sessions.** Each sidebar shows only agents in its own tmux session, including agents in that session's detached holding area.
 - **Creation order.** New folders appear below existing folders. New agents appear below existing agents in their folder.
 - **Persistent selection.** The visible agent stays highlighted while you type. Keyboard navigation tracks each agent by its pane identity.
 - **Usage for the visible agent.** See subscription limits, reset times, model names, and local session usage where available.
