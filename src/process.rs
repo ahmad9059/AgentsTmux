@@ -121,6 +121,21 @@ pub(crate) fn command_basename(command: &str) -> &str {
 }
 
 pub(crate) fn process_matches_agent(info: &ProcessInfo, agent_name: &str) -> bool {
+    if agent_name == "commandcode"
+        && command_basename(&info.comm) == "node"
+        && info
+            .args
+            .split_whitespace()
+            .next()
+            .is_some_and(|arg| command_basename(arg) == "node")
+        && info.args.split_whitespace().nth(1).is_some_and(|arg| {
+            command_basename(arg) == "commandcode"
+                || arg.ends_with("/command-code/dist/index.mjs")
+                || arg.ends_with("/command-code/dist/cli.mjs")
+        })
+    {
+        return true;
+    }
     if command_basename(&info.comm) == agent_name {
         return true;
     }
@@ -134,6 +149,35 @@ pub(crate) fn process_matches_agent(info: &ProcessInfo, agent_name: &str) -> boo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn commandcode_node_entrypoints_are_detected_without_matching_prompt_text() {
+        for args in [
+            "node /usr/bin/commandcode",
+            "node /usr/lib/node_modules/command-code/dist/index.mjs",
+            "node /usr/lib/node_modules/command-code/dist/cli.mjs",
+        ] {
+            assert!(process_matches_agent(
+                &ProcessInfo {
+                    comm: "node".into(),
+                    args: args.into()
+                },
+                "commandcode"
+            ));
+        }
+        for args in [
+            "node unrelated.js /usr/bin/commandcode",
+            "cat /usr/lib/node_modules/command-code/dist/index.mjs",
+        ] {
+            assert!(!process_matches_agent(
+                &ProcessInfo {
+                    comm: "node".into(),
+                    args: args.into()
+                },
+                "commandcode"
+            ));
+        }
+    }
 
     #[test]
     fn descendants_walks_process_tree() {

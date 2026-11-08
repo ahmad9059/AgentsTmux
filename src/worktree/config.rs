@@ -7,7 +7,7 @@ pub const AGENT_OPTION: &str = "@agent-sidebar-default-agent";
 pub const BRANCH_PREFIX_OPTION: &str = "@agent-sidebar-branch-prefix";
 pub const WORKTREE_DIR_OPTION: &str = "@agent-sidebar-worktree-dir";
 
-pub const AGENTS: &[&str] = &["claude", "codex", "opencode"];
+pub const AGENTS: &[&str] = &["claude", "codex", "opencode", "commandcode"];
 pub const CLAUDE_MODES: &[&str] = &[
     "default",
     "plan",
@@ -17,11 +17,13 @@ pub const CLAUDE_MODES: &[&str] = &[
 ];
 pub const CODEX_MODES: &[&str] = &["default", "auto", "bypassPermissions"];
 pub const OPENCODE_MODES: &[&str] = &["default"];
+pub const COMMANDCODE_MODES: &[&str] = &["default", "plan", "accept-edits", "dont-ask", "yolo"];
 
 pub fn modes_for(agent: &str) -> &'static [&'static str] {
     match agent {
         "codex" => CODEX_MODES,
         "opencode" => OPENCODE_MODES,
+        "commandcode" => COMMANDCODE_MODES,
         _ => CLAUDE_MODES,
     }
 }
@@ -44,6 +46,10 @@ pub fn agent_command(agent: &str, mode: &str) -> String {
         ("codex", "bypassPermissions") => "codex --dangerously-bypass-approvals-and-sandbox".into(),
         ("codex", _) => "codex".into(),
         ("opencode", _) => "opencode".into(),
+        ("commandcode", m @ ("plan" | "accept-edits" | "dont-ask" | "yolo")) => {
+            format!("commandcode --permission-mode {m}")
+        }
+        ("commandcode", _) => "commandcode".into(),
         (a, _) => a.to_string(),
     }
 }
@@ -60,6 +66,21 @@ pub enum RemoveMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn commandcode_spawn_modes_are_whitelisted() {
+        assert!(AGENTS.contains(&"commandcode"));
+        assert_eq!(modes_for("commandcode"), COMMANDCODE_MODES);
+        for mode in COMMANDCODE_MODES {
+            let expected = if *mode == "default" {
+                "commandcode".into()
+            } else {
+                format!("commandcode --permission-mode {mode}")
+            };
+            assert_eq!(agent_command("commandcode", mode), expected);
+        }
+        assert_eq!(agent_command("commandcode", "unknown"), "commandcode");
+    }
 
     #[test]
     fn modes_for_claude_returns_claude_modes_by_default() {

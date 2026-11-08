@@ -8,6 +8,69 @@ use test_helpers::*;
 // ─── Bottom Tab Tests ──────────────────────────────────────────────
 
 #[test]
+fn commandcode_usage_has_three_aligned_bars_and_session_details() {
+    use agents_tmux::usage::{UsageSnapshot, UsageWindow};
+    let pane = make_pane(AgentType::CommandCode, PaneStatus::Running);
+    let mut state = make_state(vec![]);
+    state.repo_groups = vec![make_repo_group("project", vec![pane])];
+    attach_usage(
+        &mut state,
+        UsageSnapshot {
+            title: "Command Code".into(),
+            plan: Some("go".into()),
+            windows: [("5h", 20.0), ("1w", 40.0), ("1mo", 60.0)]
+                .into_iter()
+                .map(|(label, percent)| UsageWindow {
+                    label: label.into(),
+                    percent,
+                    resets_at: None,
+                })
+                .collect(),
+            local: vec![
+                ("Using".into(), "commandcode".into()),
+                ("Model".into(), "deepseek-v4".into()),
+                ("Session".into(), "12k tok".into()),
+            ],
+            extras: vec!["Total $6.00 · billing period".into()],
+            ..UsageSnapshot::default()
+        },
+    );
+    let mut terminal = ratatui::Terminal::new(ratatui::backend::TestBackend::new(32, 18)).unwrap();
+    terminal
+        .draw(|frame| agents_tmux::ui::bottom::draw_bottom(frame, &mut state, frame.area()))
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    let output = (0..18)
+        .map(|y| {
+            (0..32)
+                .map(|x| buffer[(x, y)].symbol())
+                .collect::<String>()
+                .trim_end()
+                .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    insta::assert_snapshot!(output, @"
+    ─────────── Usage ────────────
+    Command Code · go
+
+    5h  ████░░░░░░░░░░░░░░░░░░ 20%
+
+    1w  ████████░░░░░░░░░░░░░░ 40%
+
+    1mo █████████████░░░░░░░░░ 60%
+
+    Using   commandcode
+
+    Model   deepseek-v4
+
+    Session 12k tok
+
+    Total $6.00 · billing period
+    ");
+}
+
+#[test]
 fn usage_divider_and_spacing_preserve_blank_rows() {
     let pane = make_pane(AgentType::Claude, PaneStatus::Running);
     let mut state = make_state(vec![]);

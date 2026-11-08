@@ -68,7 +68,7 @@ pub fn spawn_from_pane(req: &SpawnRequest, caller: &str) -> Result<String, Strin
     parked.session = parking;
     let (pane, _) = spawn_with(&RealEnv, &parked)?;
     // Keep a slot selectable during startup or first-run hook approval.
-    if ["claude", "codex", "opencode"].contains(&req.agent.as_str())
+    if super::AGENTS.contains(&req.agent.as_str())
         && crate::tmux::get_pane_option_value(&pane, crate::tmux::PANE_AGENT).is_empty()
     {
         crate::tmux::set_pane_option(&pane, crate::tmux::PANE_AGENT, &req.agent);

@@ -172,6 +172,7 @@ impl ColorTheme {
             AgentType::Claude => self.agent_claude,
             AgentType::Codex => self.agent_codex,
             AgentType::OpenCode => self.agent_opencode,
+            AgentType::CommandCode => Color::Indexed(81),
             AgentType::Unknown => self.status_unknown,
         }
     }

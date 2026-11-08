@@ -26,6 +26,7 @@ struct Paths {
     codex_home: PathBuf,
     opencode_dir: PathBuf,
     pi_dir: PathBuf,
+    commandcode_dir: PathBuf,
 }
 
 impl Paths {
@@ -40,6 +41,7 @@ impl Paths {
             codex_home: dir("CODEX_HOME", home.join(".codex")),
             opencode_dir: dir("XDG_CONFIG_HOME", home.join(".config")).join("opencode"),
             pi_dir: dir("PI_CODING_AGENT_DIR", home.join(".pi/agent")),
+            commandcode_dir: home.join(".commandcode"),
         })
     }
 
@@ -60,6 +62,7 @@ struct Options {
     codex: bool,
     opencode: bool,
     pi: bool,
+    commandcode: bool,
     plugin_dir: Option<PathBuf>,
 }
 
@@ -75,6 +78,7 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
             "--codex" => options.codex = true,
             "--opencode" => options.opencode = true,
             "--pi" => options.pi = true,
+            "--commandcode" => options.commandcode = true,
             "--plugin-dir" => {
                 let value = iter.next().ok_or("--plugin-dir needs a path")?;
                 options.plugin_dir = Some(PathBuf::from(value));
@@ -87,10 +91,11 @@ fn parse_args(args: &[String]) -> Result<Options, String> {
         || options.claude
         || options.codex
         || options.opencode
+        || options.commandcode
         || options.pi)
     {
         return Err(
-            "select --auto, --all, or one or more of --claude --codex --opencode --pi".into(),
+            "select --auto, --all, or one or more of --claude --codex --opencode --pi --commandcode".into(),
         );
     }
     Ok(options)
@@ -139,7 +144,12 @@ pub(super) fn cmd_integrate(args: &[String]) -> i32 {
             options.auto && detected
         }
     };
-    let steps: [(&str, bool, Step); 4] = [
+    let steps: [(&str, bool, Step); 5] = [
+        (
+            "Command Code",
+            wanted(options.commandcode, command_exists("commandcode")),
+            commandcode,
+        ),
         (
             "Codex",
             wanted(options.codex, paths.codex_home.is_dir()),
@@ -304,6 +314,20 @@ fn pi(paths: &Paths) -> Result<String, String> {
     })
 }
 
+fn commandcode(paths: &Paths) -> Result<String, String> {
+    let changed = link(
+        &paths
+            .plugin_dir
+            .join("integrations/commandcode/agents-tmux.ts"),
+        &paths.commandcode_dir.join("mods/agents-tmux.ts"),
+    )?;
+    Ok(if changed {
+        "mod installed. Use /mods reload or start a new session.".into()
+    } else {
+        String::new()
+    })
+}
+
 fn claude(paths: &Paths) -> Result<String, String> {
     if installed_plugin_status().installed {
         return Ok(String::new());
@@ -344,6 +368,7 @@ mod tests {
             codex_home: root.join("codex"),
             opencode_dir: root.join("opencode"),
             pi_dir: root.join("pi"),
+            commandcode_dir: root.join("commandcode"),
         }
     }
 
@@ -437,6 +462,30 @@ mod tests {
         fs::write(&extension, "mine").unwrap();
         assert!(pi(&paths).is_err());
         assert_eq!(fs::read_to_string(&extension).unwrap(), "mine");
+    }
+
+    #[test]
+    fn commandcode_mod_install_is_idempotent_and_keeps_settings() {
+        let root = tempfile::tempdir().unwrap();
+        let paths = paths(root.path());
+        fs::create_dir_all(&paths.commandcode_dir).unwrap();
+        let settings = paths.commandcode_dir.join("settings.json");
+        fs::write(&settings, r#"{"model":"mine","hooks":{"Stop":[]}}"#).unwrap();
+        let original = fs::read(&settings).unwrap();
+        assert!(!commandcode(&paths).unwrap().is_empty());
+        assert!(commandcode(&paths).unwrap().is_empty());
+        assert_eq!(fs::read(&settings).unwrap(), original);
+        let link = paths.commandcode_dir.join("mods/agents-tmux.ts");
+        assert_eq!(
+            fs::read_link(&link).unwrap(),
+            paths
+                .plugin_dir
+                .join("integrations/commandcode/agents-tmux.ts")
+        );
+        fs::remove_file(&link).unwrap();
+        fs::write(&link, "user's mod").unwrap();
+        assert!(commandcode(&paths).is_err());
+        assert_eq!(fs::read_to_string(&link).unwrap(), "user's mod");
     }
 
     #[test]

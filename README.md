@@ -1,6 +1,6 @@
 # AgentsTmux
 
-A tmux sidebar for Claude Code, Codex, OpenCode, and Pi.
+A tmux sidebar for Claude Code, Codex, Command Code, OpenCode, and Pi.
 
 Keep your agents in one tmux window. Select an agent to show its live terminal beside the sidebar.
 Other agents continue to run in the background.
@@ -112,6 +112,7 @@ Before changing a file, the installer saves a backup under `~/.local/state/agent
 | Codex | `~/.codex` exists | Adds lifecycle hooks to `~/.codex/hooks.json` |
 | OpenCode V2 | `~/.config/opencode` exists | Links the bundled TUI plugin and adds it to `cli.json` |
 | Pi | `~/.pi/agent` exists | Links the bundled extension |
+| Command Code | `commandcode` is on `PATH` | Links the bundled mod to `~/.commandcode/mods/agents-tmux.ts` |
 
 After configuration:
 
@@ -120,6 +121,9 @@ After configuration:
 - **OpenCode V2:** Use `/reload` if OpenCode is already running.
   The integration runs in the local client, so events identify the source tmux pane.
 - **Pi:** The extension uses the Claude-compatible adapter and badge. Preview text includes the `[Pi]` prefix.
+- **Command Code:** Start a new session or use `/mods reload` to load the mod.
+  The mod reports running, waiting, idle, and error states. It does not approve permission requests.
+  Select `commandcode` in the new-agent form to start its CLI.
 
 To disable automatic configuration, add this setting before the plugin loads:
 
@@ -143,7 +147,7 @@ Otherwise, use the binary in `bin/` or `target/release/` inside the plugin folde
 - Disable the old sidebar plugin before using AgentsTmux.
 - Disable the old sidebar hooks. AgentsTmux does not remove integrations with different names. Two active integrations can produce duplicate events.
 - Do not load `integrations/opencode-v1/agents-tmux.js` in OpenCode V2. That file supports the older OpenCode integration.
-- For a custom plugin location, set `AGENTSTMUX_HOOK` to the absolute path of `hook.sh` before starting OpenCode or Pi.
+- For a custom plugin location, set `AGENTSTMUX_HOOK` to the absolute path of `hook.sh` before starting an agent.
 
 ## Controls
 
@@ -218,6 +222,7 @@ Selecting Codex changes the visible terminal and Usage section. This capture use
 |---|---|
 | Claude Code | Five-hour and weekly subscription limits, reset times, plan, and extra usage |
 | Codex | Primary and weekly subscription limits, reset times, plan, and credits |
+| Command Code | Reported five-hour and weekly limits, monthly credits, reset times, model, session tokens, and billing totals |
 | OpenCode and Pi | Local session usage and subscription limits when their provider supplies them |
 
 The section also shows these details where available:
@@ -238,6 +243,12 @@ After a temporary failure, the section can retain cached bars for up to one hour
 An age label identifies those cached values. If data is unavailable, the section explains why.
 
 OpenCode and Pi use their own provider credentials. AgentsTmux does not substitute an unrelated CLI account.
+Command Code providers also use the harness's own API key.
+The sidebar reads the active OpenCode credential or the matching Pi credential.
+Native Command Code uses `COMMAND_CODE_API_KEY` or `~/.commandcode/auth.json`.
+Its mod records session token counts locally. Counts start when the mod first observes that session.
+Command Code totals cover the current billing period. Monthly credits spent plus remaining credits determine the monthly bar.
+AgentsTmux does not assume a plan allowance. Pay-as-you-go accounts have no subscription bars unless the API reports limits.
 If Claude's request is rate-limited, an OpenCode credential can supply its limits only after Anthropic verifies the same account and organization.
 
 ## Configuration

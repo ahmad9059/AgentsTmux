@@ -40,8 +40,8 @@ pub use panes::{
 pub use query::query_sessions;
 pub(crate) use query::{is_shell_command, query_session_with_process_snapshot};
 pub use types::{
-    AgentType, CLAUDE_AGENT, CODEX_AGENT, OPENCODE_AGENT, PaneInfo, PaneStatus, PermissionMode,
-    SessionInfo, WindowInfo, WorktreeMetadata,
+    AgentType, CLAUDE_AGENT, CODEX_AGENT, COMMANDCODE_AGENT, OPENCODE_AGENT, PaneInfo, PaneStatus,
+    PermissionMode, SessionInfo, WindowInfo, WorktreeMetadata,
 };
 
 #[cfg(test)]

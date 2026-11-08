@@ -23,13 +23,19 @@ pub(in crate::cli::hook) fn on_user_prompt_submit(
     set_agent_meta(pane, ctx);
     set_attention(pane, "clear");
     set_status(pane, "running");
-    set_notification_run_id(pane);
+    let progress_only =
+        ctx.agent == "commandcode" && std::env::var("AGENTSTMUX_QUIET").as_deref() == Ok("1");
+    if !progress_only {
+        set_notification_run_id(pane);
+    }
     if !prompt.is_empty() && !is_system_message(prompt) {
         let p = sanitize_tmux_value(prompt);
         tmux::set_pane_option(pane, tmux::PANE_PROMPT, &p);
         tmux::set_pane_option(pane, tmux::PANE_PROMPT_SOURCE, "user");
     }
-    tmux::set_pane_option(pane, tmux::PANE_STARTED_AT, &now_epoch_secs().to_string());
+    if !progress_only || tmux::get_pane_option_value(pane, tmux::PANE_STARTED_AT).is_empty() {
+        tmux::set_pane_option(pane, tmux::PANE_STARTED_AT, &now_epoch_secs().to_string());
+    }
     tmux::unset_pane_option(pane, tmux::PANE_WAIT_REASON);
     0
 }

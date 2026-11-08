@@ -61,6 +61,12 @@ fn build_lines<'a>(
 
     // Use the same longest-fit meter for every window so the two bars line
     // up even when their countdowns have different lengths.
+    let label_cells = snapshot
+        .windows
+        .iter()
+        .map(|w| display_width(&w.label))
+        .max()
+        .unwrap_or(0);
     let reserved = snapshot
         .windows
         .iter()
@@ -70,14 +76,14 @@ fn build_lines<'a>(
                 .resets_at
                 .map(|at| format!("{}  {percent}", format_countdown(at, now)))
                 .unwrap_or(percent);
-            display_width(&window.label) + 1 + display_width(&tail) + 1
+            label_cells + 1 + display_width(&tail) + 1
         })
         .max()
         .unwrap_or(0);
     let meter_cells = width.saturating_sub(reserved);
     for window in &snapshot.windows {
         lines.push(window_line(
-            &window.label,
+            &format!("{:<label_cells$}", window.label),
             window.percent,
             window.resets_at,
             now,

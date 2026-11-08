@@ -29,6 +29,7 @@ use serde_json::Value;
 use crate::time::now_epoch_secs;
 use crate::tmux::AgentType;
 
+mod commandcode;
 mod http;
 mod native;
 
@@ -139,6 +140,16 @@ impl UsageFetcher {
                     Err(err) => snapshot.message = Some(err),
                 }
             }
+            AgentType::CommandCode => {
+                snapshot.title = "Command Code".into();
+                snapshot.local = commandcode::local_details(target);
+                match commandcode::native_credentials(target)
+                    .and_then(|token| commandcode::fetch(&token))
+                {
+                    Ok(usage) => apply_provider(&mut snapshot, usage),
+                    Err(error) => snapshot.message = Some(error),
+                }
+            }
             AgentType::OpenCode => {
                 snapshot.title = "OpenCode".into();
                 let local = opencode_local_usage(target);
@@ -152,6 +163,9 @@ impl UsageFetcher {
                             }
                             Some(ProviderKind::Codex) => {
                                 self.attach_provider(&mut snapshot, false, target)
+                            }
+                            Some(ProviderKind::CommandCode) => {
+                                commandcode::attach(&mut snapshot, target, &local.provider)
                             }
                             None => {
                                 snapshot.message =
@@ -174,6 +188,9 @@ impl UsageFetcher {
                             }
                             Some(ProviderKind::Codex) => {
                                 self.attach_provider(&mut snapshot, false, target)
+                            }
+                            Some(ProviderKind::CommandCode) => {
+                                commandcode::attach(&mut snapshot, target, &local.provider)
                             }
                             None => {
                                 snapshot.message =
@@ -252,11 +269,17 @@ fn apply_provider(snapshot: &mut UsageSnapshot, usage: ProviderUsage) {
 enum ProviderKind {
     Claude,
     Codex,
+    CommandCode,
 }
 
 fn provider_for(provider: &str) -> Option<ProviderKind> {
     let provider = provider.to_ascii_lowercase();
-    if provider.contains("anthropic") || provider.contains("claude") {
+    if matches!(
+        provider.as_str(),
+        "commandcode" | "command-code" | "command_code"
+    ) {
+        Some(ProviderKind::CommandCode)
+    } else if provider.contains("anthropic") || provider.contains("claude") {
         Some(ProviderKind::Claude)
     } else if provider.contains("openai") || provider.contains("codex") {
         Some(ProviderKind::Codex)
@@ -1180,7 +1203,7 @@ mod tests {
     fn provider_mapping_recognises_subscriptions() {
         assert_eq!(provider_for("anthropic"), Some(ProviderKind::Claude));
         assert_eq!(provider_for("openai-codex"), Some(ProviderKind::Codex));
-        assert_eq!(provider_for("commandcode"), None);
+        assert_eq!(provider_for("commandcode"), Some(ProviderKind::CommandCode));
         assert_eq!(provider_for("antigravity"), None);
     }
 
