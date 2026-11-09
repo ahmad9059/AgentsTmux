@@ -80,14 +80,7 @@ pub(super) fn collect(state: &AppState, width: u16) -> CollectedRows {
             let ports = pane_state.map(|s| s.ports.as_slice());
             let task_progress = pane_state.and_then(|s| s.task_progress.as_ref());
             let card_start = collected.lines.len();
-            let padding_style = if is_selected {
-                Style::default().bg(theme.selection_bg)
-            } else {
-                Style::default()
-            };
-            let padding = Line::from(Span::styled(" ".repeat(width), padding_style));
-            collected.lines.push(padding.clone());
-            collected.line_to_row.push(Some(row_index));
+            let padding = Line::from(Span::raw(" ".repeat(width)));
             let status_line_idx = collected.lines.len();
             let mut pane_lines = row::render_pane_lines_with_ports(
                 pane,
@@ -110,7 +103,7 @@ pub(super) fn collect(state: &AppState, width: u16) -> CollectedRows {
             }
             if row::has_agent_controls(is_selected, width) {
                 // Expand into the padding, but never steal branch/detail clicks.
-                let hit_height = if pane_line_count == 1 { 3 } else { 2 };
+                let hit_height = if pane_line_count == 1 { 2 } else { 1 };
                 collected
                     .pending_actions
                     .push((card_start, pane.pane_id.clone(), hit_height));
@@ -208,12 +201,10 @@ mod tests {
             .join("\n");
         insta::assert_snapshot!(snapshot, @"
         repo [highlight=false]
-         [highlight=false]
           ⠋ claude [highlight=false]
          [highlight=false]
-         [highlight=true]
         ┃ ⠋ claude        ↑ ↓ 󰆴 [highlight=true]
-         [highlight=true]
+         [highlight=false]
         ");
     }
 

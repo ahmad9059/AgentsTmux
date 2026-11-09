@@ -82,7 +82,7 @@ fn test_line_to_row_single_agent() {
     ");
     assert_eq!(
         state.layout.line_to_row,
-        vec![None, Some(0), Some(0), Some(0), Some(0)]
+        vec![None, Some(0), Some(0), Some(0)]
     );
 }
 
@@ -154,16 +154,7 @@ fn test_line_to_row_two_agents() {
     ");
     assert_eq!(
         state.layout.line_to_row,
-        vec![
-            None,
-            Some(0),
-            Some(0),
-            Some(0),
-            Some(1),
-            Some(1),
-            Some(1),
-            Some(1)
-        ]
+        vec![None, Some(0), Some(0), Some(1), Some(1), Some(1)]
     );
 }
 
@@ -194,7 +185,7 @@ fn test_line_to_row_with_prompt() {
     ");
     assert_eq!(
         state.layout.line_to_row,
-        vec![None, Some(0), Some(0), Some(0), Some(0)]
+        vec![None, Some(0), Some(0), Some(0)]
     );
 }
 
@@ -228,7 +219,7 @@ fn test_line_to_row_with_version_banner() {
     // version banner should still stay out of the scrollable list
     assert_eq!(
         state.layout.line_to_row,
-        vec![None, Some(0), Some(0), Some(0), Some(0)]
+        vec![None, Some(0), Some(0), Some(0)]
     );
 }
 

@@ -8,7 +8,7 @@ use agents_tmux::ui::icons::StatusIcons;
 use test_helpers::*;
 
 #[test]
-fn padded_agent_cards_map_padding_clicks_and_expand_action_targets() {
+fn compact_agent_spacing_stays_clickable_with_wider_action_targets() {
     let mut first = make_pane(AgentType::OpenCode, PaneStatus::Running);
     first.pane_id = "%701".into();
     let mut second = make_pane(AgentType::CommandCode, PaneStatus::Running);
@@ -33,7 +33,7 @@ fn padded_agent_cards_map_padding_clicks_and_expand_action_targets() {
     ");
     assert_eq!(
         state.layout.line_to_row,
-        vec![None, Some(0), Some(0), Some(0), Some(1), Some(1), Some(1)]
+        vec![None, Some(0), Some(0), Some(1), Some(1)]
     );
     let close = state
         .layout
@@ -41,15 +41,15 @@ fn padded_agent_cards_map_padding_clicks_and_expand_action_targets() {
         .iter()
         .find(|target| matches!(target.action, agents_tmux::state::AgentRowAction::Close))
         .unwrap();
-    assert_eq!(close.rect.height, 3);
+    assert_eq!(close.rect.height, 2);
     assert_eq!(close.rect.width, 2);
     assert_eq!(close.rect.right(), 31);
-    // Padding is part of the agent, not a dead gap between list items.
+    // The small separator remains clickable without enlarging the highlight.
     state.handle_mouse_click(3, 5);
     assert_eq!(state.global.selected_pane_row, 0);
-    state.handle_mouse_click(5, 5);
+    state.handle_mouse_click(4, 5);
     assert_eq!(state.global.selected_pane_row, 0);
-    state.handle_mouse_click(8, 5);
+    state.handle_mouse_click(6, 5);
     assert_eq!(state.global.selected_pane_row, 1);
 }
 
@@ -271,6 +271,7 @@ fn test_running_icon_blink_off() {
     insta::assert_snapshot!(render_to_string(&mut state, 28, 25), @"
     ⓘ  Agents             + — 
     project
+    ┃ ⠋ claude
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -297,6 +298,7 @@ fn test_running_spinner_frame_advances() {
     insta::assert_snapshot!(render_to_string(&mut state, 28, 25), @"
     ⓘ  Agents             + — 
     project
+    ┃ ⠸ claude
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -322,6 +324,7 @@ fn test_waiting_icon() {
     insta::assert_snapshot!(render_to_string(&mut state, 28, 25), @"
     ⓘ  Agents             + — 
     project
+    ┃ ● claude
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -347,6 +350,7 @@ fn test_error_icon() {
     insta::assert_snapshot!(render_to_string(&mut state, 28, 25), @"
     ⓘ  Agents             + — 
     project
+    ┃ ◉ claude
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -435,6 +439,7 @@ fn test_agents_auto_scroll_up_shows_group_header() {
     // scrolling back up to the first agent.
     insta::assert_snapshot!(render_to_string(&mut state, 28, 26), @"
     ⓘ  Agents             + — 
+    project
       ○ claude            ↑ ↓ 󰆴
         Waiting for prompt…
      ───────── Usage ──────────
@@ -473,10 +478,11 @@ fn repo_popup_renders_repo_names_when_open() {
     ⓘ  Agents                         + — 
                                 ┌──────────┐
     frontend                    │ All      │
-                                │ frontend │
-    ┃ ○ claude                  │ backend  │
-        Waiting for prompt…     └──────────┘
+    ┃ ○ claude                  │ frontend │
+        Waiting for prompt…     │ backend  │
+                                └──────────┘
     backend
+    ┃ ○ claude
      ─────────────── Usage ────────────────
                  Loading usage…
     ");
@@ -518,12 +524,12 @@ fn repo_popup_highlights_selected_entry_with_background() {
     ⓘ[fg:208] [fg:39,bold] [fg:39,bold]A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold]                         +[fg:255] —[fg:255] [fg:255]
                                 ┌[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]┐[fg:153]
     f[fg:153]r[fg:153]o[fg:153]n[fg:153]t[fg:153]e[fg:153]n[fg:153]d[fg:153]                    │[fg:153] [fg:255]A[fg:255]l[fg:255]l[fg:255] [fg:255] [fg:255] [fg:255] [fg:255] [fg:255] [fg:255]│[fg:153]
-                                │[fg:153] [fg:252]f[fg:252]r[fg:252]o[fg:252]n[fg:252]t[fg:252]e[fg:252]n[fg:252]d[fg:252] [fg:252]│[fg:153]
-    ┃[fg:153] ○[fg:114] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]                  │[fg:153] [fg:255]b[fg:255]a[fg:255]c[fg:255]k[fg:255]e[fg:255]n[fg:255]d[fg:255] [fg:255] [fg:255]│[fg:153]
-       [fg:255] [fg:255]W[fg:255]a[fg:255]i[fg:255]t[fg:255]i[fg:255]n[fg:255]g[fg:255] [fg:255]f[fg:255]o[fg:255]r[fg:255] [fg:255]p[fg:255]r[fg:255]o[fg:255]m[fg:255]p[fg:255]t[fg:255]…[fg:255]     └[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]┘[fg:153]
-
+    ┃[fg:153] ○[fg:114] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]                  │[fg:153] [fg:252]f[fg:252]r[fg:252]o[fg:252]n[fg:252]t[fg:252]e[fg:252]n[fg:252]d[fg:252] [fg:252]│[fg:153]
+       [fg:255] [fg:255]W[fg:255]a[fg:255]i[fg:255]t[fg:255]i[fg:255]n[fg:255]g[fg:255] [fg:255]f[fg:255]o[fg:255]r[fg:255] [fg:255]p[fg:255]r[fg:255]o[fg:255]m[fg:255]p[fg:255]t[fg:255]…[fg:255]     │[fg:153] [fg:255]b[fg:255]a[fg:255]c[fg:255]k[fg:255]e[fg:255]n[fg:255]d[fg:255] [fg:255] [fg:255]│[fg:153]
+                                └[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]┘[fg:153]
 
     b[fg:153]a[fg:153]c[fg:153]k[fg:153]e[fg:153]n[fg:153]d[fg:153]
+    ┃[fg:153] ○[fg:114] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]
 
      ─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240] [fg:240]U[fg:153]s[fg:153]a[fg:153]g[fg:153]e[fg:153] [fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]
 

@@ -493,7 +493,7 @@ fn compute_scroll_offset(state: &mut AppState, total_lines: usize, list_area: Re
             let offset = state.scrolls.panes.offset;
             if visible_h > 0 && last - first + 1 > visible_h {
                 // A clipped card must still show its status, not only padding.
-                state.scrolls.panes.offset = (first + 1).min(last).saturating_sub(visible_h / 2);
+                state.scrolls.panes.offset = first.saturating_sub(visible_h / 2);
             } else if first < offset {
                 state.scrolls.panes.offset = first.saturating_sub(1);
             } else if last >= offset + visible_h {
