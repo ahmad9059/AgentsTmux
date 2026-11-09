@@ -72,18 +72,12 @@ fn test_line_to_row_single_agent() {
     }]);
     state.repo_groups = vec![make_repo_group("project", vec![pane])];
     state.rebuild_row_targets();
-    state.bottom_panel_height = 0;
-    let output = render_to_string(&mut state, 28, 12);
-    insta::assert_snapshot!(output, @"
-    ⓘ  Agents             + — 
-    project
-    ┃ ○ claude            ↑ ↓ 󰆴
-        Waiting for prompt…
-    ");
-    assert_eq!(
-        state.layout.line_to_row,
-        vec![None, Some(0), Some(0), Some(0)]
-    );
+    let _ = render_to_styled_string(&mut state, 28, 10);
+    // repo header, agent status, idle hint
+    assert_eq!(state.layout.line_to_row.len(), 3);
+    assert_eq!(state.layout.line_to_row[0], None); // repo header
+    assert_eq!(state.layout.line_to_row[1], Some(0)); // agent status
+    assert_eq!(state.layout.line_to_row[2], Some(0)); // idle hint
 }
 
 #[test]
@@ -143,19 +137,13 @@ fn test_line_to_row_two_agents() {
     }]);
     state.repo_groups = vec![make_repo_group("project", vec![pane1, pane2])];
     state.rebuild_row_targets();
-    state.bottom_panel_height = 0;
-    let output = render_to_string(&mut state, 28, 14);
-    insta::assert_snapshot!(output, @"
-    ⓘ  Agents             + — 
-    project
-    ┃ ⠋ claude            ↑ ↓ 󰆴
-      ○ codex
-        Waiting for prompt…
-    ");
-    assert_eq!(
-        state.layout.line_to_row,
-        vec![None, Some(0), Some(0), Some(1), Some(1), Some(1)]
-    );
+    let _ = render_to_styled_string(&mut state, 28, 10);
+    // repo header, agent1, agent2 status+hint
+    assert_eq!(state.layout.line_to_row.len(), 4);
+    assert_eq!(state.layout.line_to_row[0], None); // repo header
+    assert_eq!(state.layout.line_to_row[1], Some(0)); // agent 1
+    assert_eq!(state.layout.line_to_row[2], Some(1)); // agent 2 status line
+    assert_eq!(state.layout.line_to_row[3], Some(1)); // agent 2 idle hint
 }
 
 #[test]
@@ -175,18 +163,12 @@ fn test_line_to_row_with_prompt() {
     }]);
     state.repo_groups = vec![make_repo_group("project", vec![pane])];
     state.rebuild_row_targets();
-    state.bottom_panel_height = 0;
-    let output = render_to_string(&mut state, 28, 12);
-    insta::assert_snapshot!(output, @"
-    ⓘ  Agents             + — 
-    project
-    ┃ ○ claude            ↑ ↓ 󰆴
-        hello
-    ");
-    assert_eq!(
-        state.layout.line_to_row,
-        vec![None, Some(0), Some(0), Some(0)]
-    );
+    let _ = render_to_styled_string(&mut state, 28, 10);
+    // repo header, agent status, prompt
+    assert_eq!(state.layout.line_to_row.len(), 3);
+    assert_eq!(state.layout.line_to_row[0], None); // repo header
+    assert_eq!(state.layout.line_to_row[1], Some(0)); // agent status line
+    assert_eq!(state.layout.line_to_row[2], Some(0)); // prompt line
 }
 
 #[test]
@@ -208,19 +190,12 @@ fn test_line_to_row_with_version_banner() {
         latest_version: "0.2.7".into(),
     });
     state.rebuild_row_targets();
-    state.bottom_panel_height = 0;
-    let output = render_to_string(&mut state, 28, 12);
-    insta::assert_snapshot!(output, @"
-    ⓘ  Agents             + — 
-    project
-    ┃ ○ claude            ↑ ↓ 󰆴
-        Waiting for prompt…
-    ");
+    let _ = render_to_string(&mut state, 28, 10);
     // version banner should still stay out of the scrollable list
-    assert_eq!(
-        state.layout.line_to_row,
-        vec![None, Some(0), Some(0), Some(0)]
-    );
+    assert_eq!(state.layout.line_to_row.len(), 3);
+    assert_eq!(state.layout.line_to_row[0], None); // repo header
+    assert_eq!(state.layout.line_to_row[1], Some(0)); // agent status line
+    assert_eq!(state.layout.line_to_row[2], Some(0)); // idle hint
 }
 
 #[test]

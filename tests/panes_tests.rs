@@ -8,52 +8,6 @@ use agents_tmux::ui::icons::StatusIcons;
 use test_helpers::*;
 
 #[test]
-fn compact_agent_spacing_stays_clickable_with_wider_action_targets() {
-    let mut first = make_pane(AgentType::OpenCode, PaneStatus::Running);
-    first.pane_id = "%701".into();
-    let mut second = make_pane(AgentType::CommandCode, PaneStatus::Running);
-    second.pane_id = "%702".into();
-    let mut state = make_state(vec![]);
-    state.bottom_panel_height = 0;
-    state.focus_state.sidebar_focused = true;
-    state.focus_state.focus = Focus::Panes;
-    state.repo_groups = vec![agents_tmux::group::RepoGroup {
-        name: "cyber".into(),
-        has_focus: false,
-        panes: vec![(first, Default::default()), (second, Default::default())],
-    }];
-    state.rebuild_row_targets();
-    state.global.selected_pane_row = 1;
-    let output = render_to_string(&mut state, 32, 14);
-    insta::assert_snapshot!(output, @"
-    ⓘ  Agents                 + — 
-    cyber
-      ⠋ opencode
-      ⠋ commandcode           ↑ ↓ 󰆴
-    ");
-    assert_eq!(
-        state.layout.line_to_row,
-        vec![None, Some(0), Some(0), Some(1), Some(1)]
-    );
-    let close = state
-        .layout
-        .agent_action_targets
-        .iter()
-        .find(|target| matches!(target.action, agents_tmux::state::AgentRowAction::Close))
-        .unwrap();
-    assert_eq!(close.rect.height, 2);
-    assert_eq!(close.rect.width, 2);
-    assert_eq!(close.rect.right(), 31);
-    // The small separator remains clickable without enlarging the highlight.
-    state.handle_mouse_click(3, 5);
-    assert_eq!(state.global.selected_pane_row, 0);
-    state.handle_mouse_click(4, 5);
-    assert_eq!(state.global.selected_pane_row, 0);
-    state.handle_mouse_click(6, 5);
-    assert_eq!(state.global.selected_pane_row, 1);
-}
-
-#[test]
 fn agent_row_controls_reorder_and_confirm_closing_manual_agents() {
     let mut a = make_pane(AgentType::CommandCode, PaneStatus::Running);
     a.pane_id = "%501".into();
@@ -104,9 +58,7 @@ fn agent_row_controls_reorder_and_confirm_closing_manual_agents() {
         .find(|target| matches!(target.action, agents_tmux::state::AgentRowAction::Close))
         .unwrap()
         .clone();
-    assert_eq!(close.rect.right(), 31, "leave column 31 as right padding");
-    assert_eq!(close.rect.width, 2);
-    assert!(close.rect.height >= 2);
+    assert_eq!(close.rect.x, 30, "leave column 31 as right padding");
     state.handle_mouse_click(close.rect.y, close.rect.x);
     assert!(
         matches!(&state.popup, agents_tmux::state::PopupState::RemoveConfirm {pane_id, has_worktree: false, ..} if pane_id == "%501")
@@ -483,6 +435,7 @@ fn repo_popup_renders_repo_names_when_open() {
                                 └──────────┘
     backend
     ┃ ○ claude
+        Waiting for prompt…
      ─────────────── Usage ────────────────
                  Loading usage…
     ");
@@ -527,9 +480,9 @@ fn repo_popup_highlights_selected_entry_with_background() {
     ┃[fg:153] ○[fg:114] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]                  │[fg:153] [fg:252]f[fg:252]r[fg:252]o[fg:252]n[fg:252]t[fg:252]e[fg:252]n[fg:252]d[fg:252] [fg:252]│[fg:153]
        [fg:255] [fg:255]W[fg:255]a[fg:255]i[fg:255]t[fg:255]i[fg:255]n[fg:255]g[fg:255] [fg:255]f[fg:255]o[fg:255]r[fg:255] [fg:255]p[fg:255]r[fg:255]o[fg:255]m[fg:255]p[fg:255]t[fg:255]…[fg:255]     │[fg:153] [fg:255]b[fg:255]a[fg:255]c[fg:255]k[fg:255]e[fg:255]n[fg:255]d[fg:255] [fg:255] [fg:255]│[fg:153]
                                 └[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]─[fg:153]┘[fg:153]
-
     b[fg:153]a[fg:153]c[fg:153]k[fg:153]e[fg:153]n[fg:153]d[fg:153]
     ┃[fg:153] ○[fg:114] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]
+       [fg:255] [fg:255]W[fg:255]a[fg:255]i[fg:255]t[fg:255]i[fg:255]n[fg:255]g[fg:255] [fg:255]f[fg:255]o[fg:255]r[fg:255] [fg:255]p[fg:255]r[fg:255]o[fg:255]m[fg:255]p[fg:255]t[fg:255]…[fg:255]
 
      ─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240] [fg:240]U[fg:153]s[fg:153]a[fg:153]g[fg:153]e[fg:153] [fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]
 

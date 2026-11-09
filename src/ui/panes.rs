@@ -491,10 +491,7 @@ fn compute_scroll_offset(state: &mut AppState, total_lines: usize, list_area: Re
         if let (Some(first), Some(last)) = (first_line, last_line) {
             let visible_h = list_area.height as usize;
             let offset = state.scrolls.panes.offset;
-            if visible_h > 0 && last - first + 1 > visible_h {
-                // A clipped card must still show its status, not only padding.
-                state.scrolls.panes.offset = first.saturating_sub(visible_h / 2);
-            } else if first < offset {
+            if first < offset {
                 state.scrolls.panes.offset = first.saturating_sub(1);
             } else if last >= offset + visible_h {
                 state.scrolls.panes.offset = (last + 1).saturating_sub(visible_h);
@@ -556,16 +553,14 @@ pub fn draw_agents(frame: &mut Frame, state: &mut AppState, area: Rect) {
         layout.list_area,
     );
     state.layout.agent_action_targets.clear();
-    for (line, pane_id, height) in pending_actions {
-        let visible_start = line.max(scroll_offset);
-        let visible_end = (line + height).min(scroll_offset + layout.list_area.height as usize);
-        if visible_start >= visible_end {
+    for (line, pane_id) in pending_actions {
+        if line < scroll_offset || line - scroll_offset >= layout.list_area.height as usize {
             continue;
         }
         for (offset, action) in [
-            (7, crate::state::AgentRowAction::Up),
-            (5, crate::state::AgentRowAction::Down),
-            (3, crate::state::AgentRowAction::Close),
+            (6, crate::state::AgentRowAction::Up),
+            (4, crate::state::AgentRowAction::Down),
+            (2, crate::state::AgentRowAction::Close),
         ] {
             state
                 .layout
@@ -573,9 +568,9 @@ pub fn draw_agents(frame: &mut Frame, state: &mut AppState, area: Rect) {
                 .push(crate::state::AgentActionTarget {
                     rect: Rect::new(
                         layout.list_area.right().saturating_sub(offset),
-                        layout.list_area.y + (visible_start - scroll_offset) as u16,
-                        2,
-                        (visible_end - visible_start) as u16,
+                        layout.list_area.y + (line - scroll_offset) as u16,
+                        1,
+                        1,
                     ),
                     pane_id: pane_id.clone(),
                     action,

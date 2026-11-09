@@ -13,7 +13,7 @@ pub(super) struct CollectedRows {
     pub line_to_row: Vec<Option<usize>>,
     pub pending_spawn: Vec<(usize, String, String)>,
     pub pending_remove: Vec<(usize, u16, String)>,
-    pub pending_actions: Vec<(usize, String, usize)>,
+    pub pending_actions: Vec<(usize, String)>,
 }
 
 pub(super) fn collect(state: &AppState, width: u16) -> CollectedRows {
@@ -79,10 +79,13 @@ pub(super) fn collect(state: &AppState, width: u16) -> CollectedRows {
             let pane_state = state.pane_state(&pane.pane_id);
             let ports = pane_state.map(|s| s.ports.as_slice());
             let task_progress = pane_state.and_then(|s| s.task_progress.as_ref());
-            let card_start = collected.lines.len();
-            let padding = Line::from(Span::raw(" ".repeat(width)));
             let status_line_idx = collected.lines.len();
-            let mut pane_lines = row::render_pane_lines_with_ports(
+            if row::has_agent_controls(is_selected, width) {
+                collected
+                    .pending_actions
+                    .push((status_line_idx, pane.pane_id.clone()));
+            }
+            let pane_lines = row::render_pane_lines_with_ports(
                 pane,
                 git_info,
                 ports,
@@ -96,24 +99,10 @@ pub(super) fn collect(state: &AppState, width: u16) -> CollectedRows {
                 state.now,
             );
             let pane_line_count = pane_lines.len();
-            if is_selected {
-                for line in &mut pane_lines {
-                    line.style = line.style.bg(theme.selection_bg);
-                }
-            }
-            if row::has_agent_controls(is_selected, width) {
-                // Expand into the padding, but never steal branch/detail clicks.
-                let hit_height = if pane_line_count == 1 { 2 } else { 1 };
-                collected
-                    .pending_actions
-                    .push((card_start, pane.pane_id.clone(), hit_height));
-            }
             collected.lines.extend(pane_lines);
             for _ in 0..pane_line_count {
                 collected.line_to_row.push(Some(row_index));
             }
-            collected.lines.push(padding);
-            collected.line_to_row.push(Some(row_index));
 
             // The branch row is always `status_line_idx + 1` when
             // `branch_ports_row` emits a line (which requires a
@@ -202,9 +191,7 @@ mod tests {
         insta::assert_snapshot!(snapshot, @"
         repo [highlight=false]
           ⠋ claude [highlight=false]
-         [highlight=false]
         ┃ ⠋ claude        ↑ ↓ 󰆴 [highlight=true]
-         [highlight=false]
         ");
     }
 
