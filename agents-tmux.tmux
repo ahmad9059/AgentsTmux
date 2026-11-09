@@ -24,6 +24,7 @@ if [[ -n "$EXPECTED_VERSION" && "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]]; 
 fi
 
 tmux set -g @agent_sidebar_bin "$SIDEBAR_BINARY"
+tmux set -g @agent_sidebar_dir "$PLUGIN_DIR"
 
 tmux source-file "$PLUGIN_DIR/agent-sidebar.conf"
 

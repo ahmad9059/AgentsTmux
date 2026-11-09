@@ -24,6 +24,20 @@ pub struct SpawnRemoveTarget {
     pub pane_id: String,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum AgentRowAction {
+    Up,
+    Down,
+    Close,
+}
+
+#[derive(Debug, Clone)]
+pub struct AgentActionTarget {
+    pub rect: ratatui::layout::Rect,
+    pub pane_id: String,
+    pub action: AgentRowAction,
+}
+
 /// Screen-positioned hyperlink overlay for OSC 8 terminal hyperlinks.
 #[derive(Debug, Clone)]
 pub struct HyperlinkOverlay {
@@ -60,6 +74,7 @@ pub struct FrameLayout {
     /// Click regions for the red `×` remove marker rendered next to the
     /// branch of each sidebar-spawned pane. One entry per visible row.
     pub spawn_remove_targets: Vec<SpawnRemoveTarget>,
+    pub agent_action_targets: Vec<AgentActionTarget>,
     /// OSC 8 hyperlink overlays the main loop writes after each frame so
     /// terminals can recognise PR numbers as clickable links.
     pub hyperlink_overlays: Vec<HyperlinkOverlay>,
@@ -71,6 +86,7 @@ pub(super) fn point_in_rect(row: u16, col: u16, rect: ratatui::layout::Rect) -> 
 
 impl AppState {
     pub fn rebuild_row_targets(&mut self) {
+        self.apply_agent_order();
         // Reset stale repo filter if the repo no longer exists, and
         // persist the reset back to tmux so fresh sidebar instances do
         // not reload the dead repo name on startup.
@@ -247,6 +263,21 @@ impl AppState {
             return;
         }
         if row < crate::ui::panes::LIST_FIRST_ROW {
+            return;
+        }
+
+        if let Some(target) = self
+            .layout
+            .agent_action_targets
+            .iter()
+            .find(|target| point_in_rect(row, col, target.rect))
+            .cloned()
+        {
+            match target.action {
+                AgentRowAction::Up => self.move_agent(&target.pane_id, -1),
+                AgentRowAction::Down => self.move_agent(&target.pane_id, 1),
+                AgentRowAction::Close => self.open_remove_confirm_for_pane(target.pane_id),
+            }
             return;
         }
 

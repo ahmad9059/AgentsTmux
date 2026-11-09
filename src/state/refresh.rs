@@ -54,8 +54,9 @@ impl AppState {
     pub(crate) fn apply_session_snapshot(
         &mut self,
         sidebar_focused: bool,
-        sessions: Vec<SessionInfo>,
+        mut sessions: Vec<SessionInfo>,
     ) {
+        self.refresh_unhooked_commandcode(&mut sessions);
         self.focus_state.sidebar_focused = sidebar_focused;
         let selected_id = self
             .layout

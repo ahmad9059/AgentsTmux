@@ -121,7 +121,7 @@ After configuration:
 - **OpenCode V2:** Use `/reload` if OpenCode is already running.
   The integration runs in the local client, so events identify the source tmux pane.
 - **Pi:** The extension uses the Claude-compatible adapter and badge. Preview text includes the `[Pi]` prefix.
-- **Command Code:** Start a new session or use `/mods reload` to load the mod.
+- **Command Code:** Use `/reload` after the current turn ends to load a newly installed or updated mod.
   The mod reports running, waiting, idle, and error states. It does not approve permission requests.
   Select `commandcode` in the new-agent form to start its CLI.
 
@@ -137,7 +137,7 @@ To configure agents manually, run:
 agents-tmux integrate --all
 ```
 
-You can select individual agents with `--claude`, `--codex`, `--opencode`, or `--pi`.
+You can select individual agents with `--claude`, `--codex`, `--opencode`, `--pi`, or `--commandcode`.
 
 Command examples assume that `agents-tmux` is on `PATH`.
 Otherwise, use the binary in `bin/` or `target/release/` inside the plugin folder.
@@ -159,7 +159,12 @@ Otherwise, use the binary in `bin/` or `target/release/` inside the plugin folde
 | **j/k** or arrow keys | Move the sidebar selection |
 | **Enter** | Show the selected agent |
 | Header **+** button | Open the new-agent form for the selected agent's folder |
-| Agent **×** button | Open removal options |
+| Agent **󰆴** button or **x** | Open the close-agent confirmation |
+| Agent **↑ / ↓** buttons or **K / J** | Move the agent up or down within its folder |
+
+The selected row shows the action buttons. Narrow sidebars keep the keyboard controls available.
+Manual order belongs to the tmux session and survives sidebar restarts. New agents appear after the saved agents in their folder.
+Closing an agent affects only its pane, not other panes in its window. The confirmation also supports agents started outside the sidebar.
 
 ### Start an agent
 
@@ -197,6 +202,8 @@ AgentsTmux closes the remaining shell if the sidebar originally started that age
 Closing an agent does not change its folder or close the shared Agents window.
 
 Other agents use a detached tmux session named `__agent-sidebar-*`. Their processes continue to run there.
+The standard tmux session and window pickers hide these internal sessions. Custom picker bindings remain unchanged.
+`tmux list-sessions` still lists them for diagnostics.
 **Do not kill that session unless you intend to stop those agents.**
 
 The first agent started from a sidebar establishes that window as the session's host.

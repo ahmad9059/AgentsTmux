@@ -23,6 +23,7 @@ Session renames do not change the holding session name or the scope of saved vie
 | `status_filter` | `@sidebar_filter` | User input (left/right key) | Active status filter (All/Running/Background/Waiting/Idle/Error) |
 | `selected_pane_row` | `@sidebar_cursor` | User input (j/k key); tmux write flushed after a short debounce | Cursor position in agent list |
 | `repo_filter` | `@sidebar_repo_filter` | User input (repo popup) | Repository filter (All or specific repo) |
+| `agent_order` | `@sidebar_agent_order` | Row arrows or uppercase J/K | Pane IDs in manual order within each folder, scoped to the session |
 
 Each field has a corresponding `last_saved_*` to prevent sync conflicts — only overwrites tmux if the local write succeeded.
 

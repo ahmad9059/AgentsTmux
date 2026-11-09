@@ -7,6 +7,8 @@ use crate::state::BottomTab;
 /// Per-pane runtime state that should vanish together with the pane.
 #[derive(Debug, Clone, Default)]
 pub struct PaneRuntimeState {
+    pub commandcode_screen_status: Option<crate::tmux::PaneStatus>,
+    pub commandcode_idle_ticks: u8,
     pub ports: Vec<u16>,
     pub command: Option<String>,
     pub task_progress: Option<TaskProgress>,

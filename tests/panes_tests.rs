@@ -7,6 +7,63 @@ use agents_tmux::ui::colors::ColorTheme;
 use agents_tmux::ui::icons::StatusIcons;
 use test_helpers::*;
 
+#[test]
+fn agent_row_controls_reorder_and_confirm_closing_manual_agents() {
+    let mut a = make_pane(AgentType::CommandCode, PaneStatus::Running);
+    a.pane_id = "%501".into();
+    a.path = "/tmp/cyber".into();
+    let mut b = make_pane(AgentType::OpenCode, PaneStatus::Idle);
+    b.pane_id = "%502".into();
+    b.path = "/tmp/cyber".into();
+    let mut state = make_state(vec![]);
+    state.bottom_panel_height = 0;
+    state.focus_state.sidebar_focused = true;
+    state.focus_state.focus = Focus::Panes;
+    state.repo_groups = vec![make_repo_group("cyber", vec![a, b])];
+    state.rebuild_row_targets();
+    let output = render_to_string(&mut state, 32, 14);
+    insta::assert_snapshot!(output, @"
+    ⓘ  Agents                 + — 
+    cyber
+      ⠋ commandcode            ↑ ↓ 󰆴
+      ○ opencode
+        Waiting for prompt…
+    ");
+    let down = state
+        .layout
+        .agent_action_targets
+        .iter()
+        .find(|target| matches!(target.action, agents_tmux::state::AgentRowAction::Down))
+        .unwrap()
+        .clone();
+    state.handle_mouse_click(down.rect.y, down.rect.x);
+    assert_eq!(state.repo_groups[0].panes[0].0.pane_id, "%502");
+    assert_eq!(state.global.selected_pane_row, 1);
+    // Reapply creation order to simulate a new query, then restore the manual order.
+    state.repo_groups[0].panes.reverse();
+    state.rebuild_row_targets();
+    assert_eq!(state.repo_groups[0].panes[0].0.pane_id, "%502");
+    let output = render_to_string(&mut state, 32, 14);
+    insta::assert_snapshot!(output, @"
+    ⓘ  Agents                 + — 
+    cyber
+      ○ opencode
+        Waiting for prompt…
+      ⠋ commandcode            ↑ ↓ 󰆴
+    ");
+    let close = state
+        .layout
+        .agent_action_targets
+        .iter()
+        .find(|target| matches!(target.action, agents_tmux::state::AgentRowAction::Close))
+        .unwrap()
+        .clone();
+    state.handle_mouse_click(close.rect.y, close.rect.x);
+    assert!(
+        matches!(&state.popup, agents_tmux::state::PopupState::RemoveConfirm {pane_id, has_worktree: false, ..} if pane_id == "%501")
+    );
+}
+
 // ─── Agents: auto-scroll behavior Tests ─────────────────────────────
 
 #[test]
@@ -26,7 +83,7 @@ fn universal_spawn_uses_plain_folder_without_duplicate_folder_buttons() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     cyber
-    ┃ ○ opencode
+    ┃ ○ opencode           ↑ ↓ 󰆴
         Waiting for prompt…
     ");
     let header = state.layout.spawn_button_col.unwrap();
@@ -334,7 +391,7 @@ fn test_agents_auto_scroll_up_shows_group_header() {
     insta::assert_snapshot!(render_to_string(&mut state, 28, 26), @"
     ⓘ  Agents             + — 
     project
-      ○ claude
+      ○ claude             ↑ ↓ 󰆴
         Waiting for prompt…
      ───────── Usage ──────────
            Loading usage…

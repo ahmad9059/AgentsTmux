@@ -12,6 +12,8 @@ pub struct GlobalState {
     pub status_filter: StatusFilter,
     pub selected_pane_row: usize,
     pub repo_filter: RepoFilter,
+    pub agent_order: Vec<String>,
+    last_saved_order: Vec<String>,
     /// Last filter value successfully written to tmux.
     last_saved_filter: StatusFilter,
     /// Last cursor value successfully written to tmux.
@@ -35,6 +37,8 @@ impl GlobalState {
             status_filter: StatusFilter::All,
             selected_pane_row: 0,
             repo_filter: RepoFilter::All,
+            agent_order: Vec::new(),
+            last_saved_order: Vec::new(),
             last_saved_filter: StatusFilter::All,
             last_saved_cursor: 0,
             last_saved_repo_filter: RepoFilter::All,
@@ -115,6 +119,12 @@ impl GlobalState {
         }
     }
 
+    pub fn save_agent_order(&mut self) {
+        if self.write_option("@sidebar_agent_order", &self.agent_order.join(",")) {
+            self.last_saved_order = self.agent_order.clone();
+        }
+    }
+
     /// Load view state without inheriting other sessions' legacy values.
     /// Called at startup and on SIGUSR1 (pane focus change).
     pub fn load_from_tmux(&mut self) {
@@ -135,6 +145,17 @@ impl GlobalState {
 
     /// Apply all global options from tmux (filter, cursor, repo filter).
     pub fn apply_all(&mut self, opts: &HashMap<String, String>) {
+        if let Some(order) = opts.get("@sidebar_agent_order") {
+            let order: Vec<String> = order
+                .split(',')
+                .filter(|id| id.starts_with('%') && id[1..].parse::<u64>().is_ok())
+                .map(str::to_string)
+                .collect();
+            if order != self.last_saved_order {
+                self.agent_order = order.clone();
+                self.last_saved_order = order;
+            }
+        }
         if let Some(filter_str) = opts.get(tmux::SIDEBAR_FILTER) {
             let tmux_filter = StatusFilter::from_label(filter_str);
             if tmux_filter != self.last_saved_filter {
@@ -169,12 +190,26 @@ mod tests {
         assert!(state.bind_session("$1"));
         state.selected_pane_row = 3;
         state.repo_filter = RepoFilter::Repo("first".into());
+        state.agent_order = vec!["%2".into(), "%1".into()];
         state.queue_cursor_save();
         assert!(!state.bind_session("$1"));
         assert_eq!(state.selected_pane_row, 3);
         assert!(state.bind_session("$2"));
         assert_eq!(state.selected_pane_row, 0);
         assert_eq!(state.repo_filter, RepoFilter::All);
+        assert!(state.agent_order.is_empty());
         assert!(state.pending_cursor_save_since.is_none());
+    }
+
+    #[test]
+    fn agent_order_round_trips_session_options_without_json_escaping() {
+        let mut state = GlobalState::new();
+        state.apply_all(&HashMap::from([(
+            "@sidebar_agent_order".into(),
+            "%3,%1,%2".into(),
+        )]));
+        assert_eq!(state.agent_order, ["%3", "%1", "%2"]);
+        state.bind_session("$different");
+        assert!(state.agent_order.is_empty());
     }
 }

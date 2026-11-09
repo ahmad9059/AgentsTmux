@@ -181,3 +181,20 @@ pub fn park_before_remove(pane: &str) -> Result<(), String> {
     run_tmux_capture(&["swap-pane", "-d", "-s", pane, "-t", &placeholder])?;
     Ok(())
 }
+
+/// Close only the confirmed agent pane. Never kill its sibling panes or sidebar.
+pub fn close_agent_pane(pane: &str, sidebar: &str) -> Result<(), String> {
+    if pane == sidebar
+        || display_message(pane, "#{@pane_role}") == "sidebar"
+        || super::AgentType::from_label(&display_message(pane, "#{@pane_agent}")).is_none()
+    {
+        return Err("target is not an agent pane".into());
+    }
+    let window = display_message(pane, "#{window_id}");
+    if enabled() && !sidebar.is_empty() && window == display_message(sidebar, "#{window_id}") {
+        let owner = display_message(sidebar, "#{session_name}");
+        adopt(pane, &window, &owner)?;
+        park_before_remove(pane)?;
+    }
+    run_tmux_capture(&["kill-pane", "-t", pane]).map(|_| ())
+}

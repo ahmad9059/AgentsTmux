@@ -122,6 +122,16 @@ pub(crate) fn command_basename(command: &str) -> &str {
 
 pub(crate) fn process_matches_agent(info: &ProcessInfo, agent_name: &str) -> bool {
     if agent_name == "commandcode"
+        && (command_basename(&info.comm) == "command-code"
+            || info
+                .args
+                .split_whitespace()
+                .next()
+                .is_some_and(|arg| command_basename(arg) == "command-code"))
+    {
+        return true;
+    }
+    if agent_name == "commandcode"
         && command_basename(&info.comm) == "node"
         && info
             .args
@@ -129,7 +139,7 @@ pub(crate) fn process_matches_agent(info: &ProcessInfo, agent_name: &str) -> boo
             .next()
             .is_some_and(|arg| command_basename(arg) == "node")
         && info.args.split_whitespace().nth(1).is_some_and(|arg| {
-            command_basename(arg) == "commandcode"
+            matches!(command_basename(arg), "commandcode" | "command-code")
                 || arg.ends_with("/command-code/dist/index.mjs")
                 || arg.ends_with("/command-code/dist/cli.mjs")
         })
@@ -152,6 +162,13 @@ mod tests {
 
     #[test]
     fn commandcode_node_entrypoints_are_detected_without_matching_prompt_text() {
+        assert!(process_matches_agent(
+            &ProcessInfo {
+                comm: "command-code".into(),
+                args: "command-code".into()
+            },
+            "commandcode"
+        ));
         for args in [
             "node /usr/bin/commandcode",
             "node /usr/lib/node_modules/command-code/dist/index.mjs",

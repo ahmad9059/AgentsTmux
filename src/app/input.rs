@@ -131,6 +131,12 @@ pub(super) fn handle_key_event(
                 state.open_remove_confirm();
             }
         }
+        KeyCode::Char('K') if state.focus_state.focus == Focus::Panes => {
+            state.move_selected_agent(-1)
+        }
+        KeyCode::Char('J') if state.focus_state.focus == Focus::Panes => {
+            state.move_selected_agent(1)
+        }
         KeyCode::Enter => {
             if state.focus_state.focus == Focus::Panes {
                 state.activate_selected_pane();

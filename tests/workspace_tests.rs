@@ -6,6 +6,216 @@ use std::sync::Mutex;
 /// session ends, so they must not overlap.
 static SERVER: Mutex<()> = Mutex::new(());
 
+fn assert_isolated_server() {
+    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    let socket = std::env::var("WORKSPACE_TEST_SOCKET").expect("dedicated socket required");
+    assert!(socket.starts_with("/tmp/opencode/spawn-regression-") && socket.ends_with(".sock"));
+    let tmux_env =
+        std::env::var("TMUX").expect("TMUX must explicitly select the disposable socket");
+    assert_eq!(
+        tmux_env.split(',').next(),
+        Some(socket.as_str()),
+        "refusing access to the user's tmux server"
+    );
+}
+
+#[test]
+#[ignore = "requires a dedicated disposable tmux socket"]
+fn commandcode_chrome_recovers_running_timer_for_an_unloaded_mod() {
+    let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
+    assert_isolated_server();
+    let root = tempfile::tempdir().unwrap();
+    let fake = root.path().join("command-code");
+    std::os::unix::fs::symlink("/bin/sleep", &fake).unwrap();
+    let running = format!(
+        "printf '%s\\n' ' ☆ Working… esc to interrupt • 1m 00s' '❯ Ask your question...' '? for shortcuts'; exec '{}' 600",
+        fake.display()
+    );
+    let agent = tmux::run_tmux_capture(&[
+        "new-session",
+        "-d",
+        "-s",
+        "commandcode-status",
+        "-P",
+        "-F",
+        "#{pane_id}",
+        &running,
+    ])
+    .unwrap();
+    let sidebar = tmux::run_tmux_capture(&[
+        "split-window",
+        "-h",
+        "-d",
+        "-t",
+        &agent,
+        "-P",
+        "-F",
+        "#{pane_id}",
+        "sleep 600",
+    ])
+    .unwrap();
+    tmux::run_tmux_capture(&[
+        "set-option",
+        "-p",
+        "-t",
+        &agent,
+        "@pane_agent",
+        "commandcode",
+    ])
+    .unwrap();
+    tmux::run_tmux_capture(&["set-option", "-p", "-t", &agent, "@pane_status", "idle"]).unwrap();
+    tmux::run_tmux_capture(&["set-option", "-p", "-t", &sidebar, "@pane_role", "sidebar"]).unwrap();
+    let mut state = agents_tmux::state::AppState::new(sidebar);
+    state.refresh();
+    assert_eq!(
+        state.repo_groups[0].panes[0].0.status,
+        tmux::PaneStatus::Running
+    );
+    let started = state.repo_groups[0].panes[0].0.started_at;
+    assert!(started.is_some());
+    state.refresh();
+    assert_eq!(state.repo_groups[0].panes[0].0.started_at, started);
+    let idle = format!(
+        "printf '%s\\n' '❯ Ask your question...' '? for shortcuts'; exec '{}' 600",
+        fake.display()
+    );
+    tmux::run_tmux_capture(&["respawn-pane", "-k", "-t", &agent, &idle]).unwrap();
+    for _ in 0..5 {
+        state.refresh();
+    }
+    assert_eq!(
+        state.repo_groups[0].panes[0].0.status,
+        tmux::PaneStatus::Idle
+    );
+    assert!(state.repo_groups[0].panes[0].0.started_at.is_none());
+    tmux::run_tmux_capture(&["kill-session", "-t", "commandcode-status"]).unwrap();
+}
+
+#[test]
+#[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
+fn closing_manual_agents_preserves_sidebar_and_filters_internal_sessions() {
+    let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
+    assert_isolated_server();
+    let root = tempfile::tempdir().unwrap();
+    let cwd = root.path().to_str().unwrap();
+    let created = tmux::run_tmux_capture(&[
+        "new-session",
+        "-d",
+        "-s",
+        "controls-owner",
+        "-n",
+        "Agents",
+        "-c",
+        cwd,
+        "-P",
+        "-F",
+        "#{window_id}|#{pane_id}",
+        "sleep 600",
+    ])
+    .unwrap();
+    let (host, agent) = created.split_once('|').unwrap();
+    let sidebar = tmux::run_tmux_capture(&[
+        "split-window",
+        "-h",
+        "-d",
+        "-t",
+        host,
+        "-P",
+        "-F",
+        "#{pane_id}",
+        "sleep 600",
+    ])
+    .unwrap();
+    let sibling = tmux::run_tmux_capture(&[
+        "new-window",
+        "-d",
+        "-t",
+        "controls-owner",
+        "-P",
+        "-F",
+        "#{pane_id}",
+        "sleep 600",
+    ])
+    .unwrap();
+    tmux::run_tmux_capture(&[
+        "set-option",
+        "-p",
+        "-t",
+        agent,
+        "@pane_agent",
+        "commandcode",
+    ])
+    .unwrap();
+    tmux::run_tmux_capture(&["set-option", "-p", "-t", &sidebar, "@pane_role", "sidebar"]).unwrap();
+    tmux::run_tmux_capture(&["set-option", "-g", "@sidebar_single_window", "on"]).unwrap();
+    assert!(tmux::workspace::close_agent_pane(&sidebar, &sidebar).is_err());
+    tmux::workspace::close_agent_pane(agent, &sidebar).unwrap();
+    let ids = tmux::run_tmux_capture(&["list-panes", "-a", "-F", "#{pane_id}"]).unwrap();
+    assert!(!ids.lines().any(|id| id == agent));
+    assert!(ids.lines().any(|id| id == sidebar));
+    assert!(ids.lines().any(|id| id == sibling));
+    assert!(tmux::workspace::content_pane(host).is_ok());
+    let parking = tmux::workspace::ensure_parking("controls-owner", cwd).unwrap();
+    for key in ["s", "w"] {
+        tmux::run_tmux_capture(&[
+            "bind-key",
+            "-T",
+            "prefix",
+            key,
+            "choose-tree",
+            &format!("-Z{key}"),
+        ])
+        .unwrap();
+    }
+    let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("scripts/configure-session-picker.sh");
+    assert!(
+        Command::new("bash")
+            .arg(&script)
+            .status()
+            .unwrap()
+            .success()
+    );
+    let binding = tmux::run_tmux_capture(&["list-keys", "-T", "prefix", "s"]).unwrap();
+    assert!(binding.contains("__agent-sidebar-"));
+    let filter = "#{==:#{m:__agent-sidebar-*,#{session_name}},0}";
+    assert_eq!(tmux::display_message(&parking, filter), "0");
+    assert_eq!(tmux::display_message("controls-owner", filter), "1");
+    // A custom picker binding must survive subsequent plugin loads.
+    tmux::run_tmux_capture(&[
+        "bind-key",
+        "-T",
+        "prefix",
+        "s",
+        "display-message",
+        "custom-picker",
+    ])
+    .unwrap();
+    assert!(
+        Command::new("bash")
+            .arg(&script)
+            .status()
+            .unwrap()
+            .success()
+    );
+    assert!(
+        tmux::run_tmux_capture(&["list-keys", "-T", "prefix", "s"])
+            .unwrap()
+            .contains("custom-picker")
+    );
+    let id = tmux::display_message("controls-owner", "#{session_id}");
+    let mut saved = agents_tmux::state::GlobalState::new();
+    saved.bind_session(&id);
+    saved.agent_order = vec![sibling.clone(), sidebar.clone()];
+    saved.save_agent_order();
+    let mut restored = agents_tmux::state::GlobalState::new();
+    restored.bind_session(&id);
+    restored.load_from_tmux();
+    assert_eq!(restored.agent_order, saved.agent_order);
+    tmux::run_tmux_capture(&["kill-session", "-t", "controls-owner"]).unwrap();
+    tmux::run_tmux_capture(&["kill-session", "-t", &parking]).unwrap();
+}
+
 fn command(program: &str, args: &[&str], cwd: &std::path::Path) {
     let result = Command::new(program)
         .args(args)
@@ -23,7 +233,7 @@ fn command(program: &str, args: &[&str], cwd: &std::path::Path) {
 #[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
 fn first_popup_spawn_uses_its_sidebar_instead_of_inherited_pane() {
     let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
-    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    assert_isolated_server();
     let root = tempfile::tempdir().unwrap();
     let location = root.path().to_str().unwrap();
     let created = tmux::run_tmux_capture(&[
@@ -110,7 +320,7 @@ fn first_popup_spawn_uses_its_sidebar_instead_of_inherited_pane() {
 #[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
 fn single_window_agents_keep_processes_and_worktree_ownership() {
     let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
-    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    assert_isolated_server();
     let directory = tempfile::tempdir().unwrap();
     let root = directory.path();
     command("git", &["init", "-q"], root);
@@ -242,7 +452,7 @@ fn single_window_agents_keep_processes_and_worktree_ownership() {
 #[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
 fn a_booting_agent_survives_until_its_grace_period_ends() {
     let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
-    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    assert_isolated_server();
     let set = |pane: &str, key: &str, value: &str| {
         tmux::run_tmux_capture(&["set-option", "-p", "-t", pane, key, value]).unwrap();
     };
@@ -290,7 +500,7 @@ fn a_booting_agent_survives_until_its_grace_period_ends() {
 #[ignore = "requires a dedicated disposable tmux socket via the test wrapper"]
 fn the_window_switches_to_another_agent_when_the_visible_one_exits() {
     let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
-    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    assert_isolated_server();
     let tmux_ok = |args: &[&str]| {
         tmux::run_tmux_capture(args)
             .unwrap_or_else(|e| panic!("{args:?}: {e}"))
@@ -398,7 +608,7 @@ fn the_window_switches_to_another_agent_when_the_visible_one_exits() {
 fn sidebars_are_isolated_by_session_including_parked_agents_and_view_state() {
     use agents_tmux::state::{AppState, GlobalState, RepoFilter, StatusFilter};
     let _server = SERVER.lock().unwrap_or_else(|e| e.into_inner());
-    assert_eq!(std::env::var("WORKSPACE_TEST_ISOLATED").as_deref(), Ok("1"));
+    assert_isolated_server();
     let root = tempfile::tempdir().unwrap();
     let folder = root.path().join("shared");
     std::fs::create_dir(&folder).unwrap();

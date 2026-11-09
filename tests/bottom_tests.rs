@@ -828,7 +828,7 @@ fn snapshot_subagents_tree_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                         + — 
     project
-    ┃ ⠋ claude
+    ┃ ⠋ claude                         ↑ ↓ 󰆴
         ├ Explore #1
         ├ Plan #2
         └ Explore #2
@@ -863,7 +863,7 @@ fn snapshot_subagent_long_name_truncated_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ claude
+    ┃ ⠋ claude             ↑ ↓ 󰆴
         ├ superpowers:code-revi…
         └ claude-code-guide #2
      ───────── Usage ──────────
@@ -897,7 +897,7 @@ fn snapshot_git_clean_centered_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ○ claude
+    ┃ ○ claude             ↑ ↓ 󰆴
         Waiting for prompt…
      ───────── Usage ──────────
            Loading usage…
@@ -1128,7 +1128,7 @@ fn snapshot_branch_truncated_ui() {
     insta::assert_snapshot!(plain, @"
     ⓘ  Agents             + — 
     dotfiles
-    ┃ ⠋ claude
+    ┃ ⠋ claude             ↑ ↓ 󰆴
     ┃   feature/tmux-sidebar-da…
      ───────── Usage ──────────
            Loading usage…
@@ -1391,7 +1391,7 @@ fn snapshot_focused_group_active_border_styled() {
     ⓘ[fg:208] [fg:39,bold] [fg:39,bold]A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold]             +[fg:255] —[fg:252] [fg:252]
 
     d[fg:153]o[fg:153]t[fg:153]f[fg:153]i[fg:153]l[fg:153]e[fg:153]s[fg:153]
-    ┃[fg:153] ⠋[fg:221] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]
+    ┃[fg:153] ⠋[fg:221] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]             [fg:252]↑[fg:252] [fg:252]↓[fg:252] [fg:252]󰆴[fg:203]
 
     m[fg:255]y[fg:255]-[fg:255]a[fg:255]p[fg:255]p[fg:255]
       ○[fg:114] [fg:141]c[fg:141]o[fg:141]d[fg:141]e[fg:141]x[fg:141]

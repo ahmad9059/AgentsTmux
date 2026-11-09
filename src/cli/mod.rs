@@ -1,5 +1,6 @@
 pub mod capture;
 mod hook;
+pub(crate) use hook::handle_event;
 mod integrate;
 mod label;
 pub mod new_agent;

@@ -5,10 +5,16 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ModApi } from "@commandcode/harness";
 
+// Command Code evaluates mods with a synthetic .load-N filename for reloads.
+export function resolveHookPath(moduleURL: string) {
+  const source = fileURLToPath(moduleURL).replace(/\.load-\d+(?=\.[^.]+$)/, "");
+  return join(dirname(realpathSync(source)), "../../hook.sh");
+}
+
 // Observe only. No hook changes prompts, permissions, results or agent state.
 export default function (cmd: ModApi) {
   if (!process.env.TMUX_PANE) return;
-  const hook = process.env.AGENTSTMUX_HOOK || join(dirname(realpathSync(fileURLToPath(import.meta.url))), "../../hook.sh");
+  const hook = process.env.AGENTSTMUX_HOOK || resolveHookPath(import.meta.url);
   let session = "";
   let mode = "default";
   for (const [index, arg] of process.argv.entries()) {

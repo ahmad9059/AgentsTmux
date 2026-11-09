@@ -541,6 +541,7 @@ pub fn draw_agents(frame: &mut Frame, state: &mut AppState, area: Rect) {
         line_to_row,
         pending_spawn,
         pending_remove,
+        pending_actions,
     } = row_collector::collect(state, layout.list_area.width);
     state.layout.line_to_row = line_to_row;
     let scroll_offset = compute_scroll_offset(state, lines.len(), layout.list_area);
@@ -551,6 +552,31 @@ pub fn draw_agents(frame: &mut Frame, state: &mut AppState, area: Rect) {
         scroll_offset,
         layout.list_area,
     );
+    state.layout.agent_action_targets.clear();
+    for (line, pane_id) in pending_actions {
+        if line < scroll_offset || line - scroll_offset >= layout.list_area.height as usize {
+            continue;
+        }
+        for (offset, action) in [
+            (5, crate::state::AgentRowAction::Up),
+            (3, crate::state::AgentRowAction::Down),
+            (1, crate::state::AgentRowAction::Close),
+        ] {
+            state
+                .layout
+                .agent_action_targets
+                .push(crate::state::AgentActionTarget {
+                    rect: Rect::new(
+                        layout.list_area.right().saturating_sub(offset),
+                        layout.list_area.y + (line - scroll_offset) as u16,
+                        1,
+                        1,
+                    ),
+                    pane_id: pane_id.clone(),
+                    action,
+                });
+        }
+    }
     render_pane_rows(frame, lines, scroll_offset, layout.list_area);
 
     render_flash_banner_into(frame, state, area);

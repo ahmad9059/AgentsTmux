@@ -487,9 +487,7 @@ impl AppState {
         }
     }
 
-    /// Open the remove confirmation popup for the currently selected pane,
-    /// but only if it was created by the sidebar's spawn flow. Otherwise
-    /// flashes an error so the user knows nothing happened.
+    /// Confirm before closing the selected agent, including manually opened agents.
     pub fn open_remove_confirm(&mut self) {
         let Some(pane) = self.selected_pane() else {
             self.set_flash("remove: no pane selected");
@@ -499,16 +497,27 @@ impl AppState {
     }
 
     pub fn open_remove_confirm_for_pane(&mut self, pane_id: String) {
-        let markers = crate::worktree::read_spawn_markers(&pane_id);
-        if !markers.is_spawned() {
-            self.set_flash("remove: selected pane was not spawned by sidebar");
+        let Some(pane) = self
+            .repo_groups
+            .iter()
+            .flat_map(|group| group.panes.iter())
+            .map(|(pane, _)| pane)
+            .find(|pane| pane.pane_id == pane_id)
+        else {
+            self.set_flash("close: agent no longer exists");
             return;
-        }
-        let has_worktree = !markers.worktree_path.is_empty();
+        };
+        let agent_path = pane.path.clone();
+        let markers = crate::worktree::read_spawn_markers(&pane_id);
+        let has_worktree = markers.is_spawned() && !markers.worktree_path.is_empty();
         let label_source = if has_worktree {
             &markers.worktree_path
         } else {
-            &markers.from_repo
+            if markers.from_repo.is_empty() {
+                &agent_path
+            } else {
+                &markers.from_repo
+            }
         };
         let branch = std::path::Path::new(label_source)
             .file_name()
@@ -531,7 +540,12 @@ impl AppState {
             PopupState::RemoveConfirm { pane_id, .. } => pane_id.clone(),
             _ => return,
         };
-        match crate::worktree::remove(&pane_id, mode) {
+        let result = if mode == crate::worktree::RemoveMode::WindowOnly {
+            crate::tmux::workspace::close_agent_pane(&pane_id, &self.tmux_pane)
+        } else {
+            crate::worktree::remove(&pane_id, mode)
+        };
+        match result {
             Ok(_) => self.popup = PopupState::None,
             Err(e) => self.set_remove_error(e),
         }

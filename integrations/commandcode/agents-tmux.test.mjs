@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import bridge from "./agents-tmux.ts";
+import bridge, { resolveHookPath } from "./agents-tmux.ts";
+
+test("Command Code's synthetic reload filename resolves to the real hook", () => {
+  const source = new URL("./agents-tmux.ts", import.meta.url);
+  const synthetic = new URL("./agents-tmux.load-42.ts", import.meta.url);
+  assert.equal(resolveHookPath(synthetic.href), resolveHookPath(source.href));
+});
 
 test("mod observes lifecycle and usage without changing permission decisions", async () => {
   const root = mkdtempSync(join(tmpdir(), "agentstmux-commandcode-"));

@@ -39,7 +39,7 @@ pub(crate) fn cmd_hook(args: &[String]) -> i32 {
 
 // ─── event handler ──────────────────────────────────────────────────────────
 
-fn handle_event(pane: &str, agent_name: &str, event: AgentEvent) -> i32 {
+pub(crate) fn handle_event(pane: &str, agent_name: &str, event: AgentEvent) -> i32 {
     match event {
         AgentEvent::SessionStart {
             agent,

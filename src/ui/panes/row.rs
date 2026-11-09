@@ -1,4 +1,7 @@
-use ratatui::{style::Style, text::Line};
+use ratatui::{
+    style::Style,
+    text::{Line, Span},
+};
 
 use crate::tmux::PaneStatus;
 use crate::ui::colors::ColorTheme;
@@ -18,6 +21,10 @@ use ctx::{RowCtx, SELECTION_MARKER};
 use status::status_row;
 
 pub(super) use branch::sidebar_remove_marker_col;
+
+pub(super) fn has_agent_controls(selected: bool, width: usize) -> bool {
+    selected && width >= 20
+}
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn render_pane_lines_with_ports(
@@ -48,7 +55,7 @@ pub(super) fn render_pane_lines_with_ports(
     // deeper details like task progress or prompt wrapping. The sidebar
     // cursor position (`selected`) still paints the full pane with the
     // selection background.
-    let marker_ctx = RowCtx {
+    let mut marker_ctx = RowCtx {
         marker_char: if active { SELECTION_MARKER } else { " " },
         marker_style: if active {
             apply_bg(Style::default().fg(theme.accent))
@@ -70,7 +77,23 @@ pub(super) fn render_pane_lines_with_ports(
     };
 
     let mut out: Vec<Line<'static>> = Vec::with_capacity(8);
-    out.push(status_row(pane, &marker_ctx, icons, spinner_frame, now));
+    let controls = has_agent_controls(selected, width);
+    if controls {
+        marker_ctx.inner_width = marker_ctx.inner_width.saturating_sub(6);
+    }
+    let mut status = status_row(pane, &marker_ctx, icons, spinner_frame, now);
+    if controls {
+        status.spans.push(Span::styled(
+            " ↑ ↓ ",
+            apply_bg(Style::default().fg(theme.text_muted)),
+        ));
+        status.spans.push(Span::styled(
+            "\u{f01b4}",
+            apply_bg(Style::default().fg(theme.status_error)),
+        ));
+        marker_ctx.inner_width += 6;
+    }
+    out.push(status);
     if let Some(line) = branch_ports_row(git_info, ports, pane.sidebar_spawned, &marker_ctx) {
         out.push(line);
     }

@@ -1043,17 +1043,15 @@ fn agent_cycle_keeps_mode_in_bounds_for_codex() {
 
 #[test]
 fn open_remove_confirm_for_unknown_pane_sets_flash_and_keeps_popup_closed() {
-    // Without a real tmux environment `display_message` returns an
-    // empty string, so the "not spawned" branch should fire, set the
-    // flash banner, and leave the popup state untouched.
+    // Only a pane in the sidebar's current session view may be closed.
     let mut state = make_state(vec![]);
     assert!(state.flash.is_none());
     state.open_remove_confirm_for_pane("%nonexistent".into());
     assert!(matches!(state.popup, PopupState::None));
     let flash = state.flash.as_ref().expect("flash must be set");
     assert!(
-        flash.0.contains("not spawned"),
-        "flash should mention the unspawned pane: {:?}",
+        flash.0.contains("no longer exists"),
+        "flash should mention the missing pane: {:?}",
         flash.0
     );
 }
@@ -1062,8 +1060,8 @@ fn open_remove_confirm_for_unknown_pane_sets_flash_and_keeps_popup_closed() {
 fn handle_mouse_click_routes_spawn_remove_targets_to_open_remove_confirm() {
     // Stuff a synthetic × click target into layout.spawn_remove_targets
     // and verify the click handler routes to
-    // `open_remove_confirm_for_pane`. Without a tmux env the call
-    // flashes "not spawned", which still proves the routing worked
+    // `open_remove_confirm_for_pane`. Without a matching pane the call
+    // flashes "no longer exists", which still proves the routing worked
     // (otherwise flash would stay None).
     use agents_tmux::state::SpawnRemoveTarget;
     let mut state = make_state(vec![]);
@@ -1074,7 +1072,7 @@ fn handle_mouse_click_routes_spawn_remove_targets_to_open_remove_confirm() {
     state.handle_mouse_click(5, 5);
     let flash = state.flash.as_ref().expect("click should have fired");
     assert!(
-        flash.0.contains("not spawned"),
+        flash.0.contains("no longer exists"),
         "click on × target should call open_remove_confirm_for_pane: {:?}",
         flash.0
     );

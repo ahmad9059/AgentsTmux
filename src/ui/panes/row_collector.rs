@@ -13,6 +13,7 @@ pub(super) struct CollectedRows {
     pub line_to_row: Vec<Option<usize>>,
     pub pending_spawn: Vec<(usize, String, String)>,
     pub pending_remove: Vec<(usize, u16, String)>,
+    pub pending_actions: Vec<(usize, String)>,
 }
 
 pub(super) fn collect(state: &AppState, width: u16) -> CollectedRows {
@@ -79,6 +80,11 @@ pub(super) fn collect(state: &AppState, width: u16) -> CollectedRows {
             let ports = pane_state.map(|s| s.ports.as_slice());
             let task_progress = pane_state.and_then(|s| s.task_progress.as_ref());
             let status_line_idx = collected.lines.len();
+            if row::has_agent_controls(is_selected, width) {
+                collected
+                    .pending_actions
+                    .push((status_line_idx, pane.pane_id.clone()));
+            }
             let pane_lines = row::render_pane_lines_with_ports(
                 pane,
                 git_info,
@@ -185,7 +191,7 @@ mod tests {
         insta::assert_snapshot!(snapshot, @"
         repo [highlight=false]
           ⠋ claude [highlight=false]
-        ┃ ⠋ claude [highlight=true]
+        ┃ ⠋ claude         ↑ ↓ 󰆴 [highlight=true]
         ");
     }
 

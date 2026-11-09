@@ -3,6 +3,7 @@ use std::time::Instant;
 use crate::ui::colors::ColorTheme;
 use crate::ui::icons::StatusIcons;
 
+mod commandcode;
 mod fallback;
 mod filter;
 mod flash;
@@ -10,6 +11,7 @@ mod focus;
 mod global;
 mod layout;
 mod notices;
+mod order;
 mod pane_runtime;
 mod pet;
 mod popup;
@@ -23,7 +25,10 @@ mod usage;
 pub use filter::{RepoFilter, StatusFilter};
 pub use focus::{Focus, FocusState};
 pub use global::GlobalState;
-pub use layout::{FrameLayout, HyperlinkOverlay, RepoSpawnTarget, RowTarget, SpawnRemoveTarget};
+pub use layout::{
+    AgentActionTarget, AgentRowAction, FrameLayout, HyperlinkOverlay, RepoSpawnTarget, RowTarget,
+    SpawnRemoveTarget,
+};
 pub(crate) use notices::debug_forced_display;
 pub use notices::{ClaudePluginNotice, NoticesCopyTarget, NoticesMissingHookGroup, NoticesState};
 pub use pane_runtime::{PaneRuntimeMap, PaneRuntimeState};
