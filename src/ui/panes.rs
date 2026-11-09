@@ -558,9 +558,9 @@ pub fn draw_agents(frame: &mut Frame, state: &mut AppState, area: Rect) {
             continue;
         }
         for (offset, action) in [
-            (5, crate::state::AgentRowAction::Up),
-            (3, crate::state::AgentRowAction::Down),
-            (1, crate::state::AgentRowAction::Close),
+            (6, crate::state::AgentRowAction::Up),
+            (4, crate::state::AgentRowAction::Down),
+            (2, crate::state::AgentRowAction::Close),
         ] {
             state
                 .layout

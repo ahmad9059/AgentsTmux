@@ -791,7 +791,7 @@ fn test_selection_bg_color_applied() {
     insta::assert_snapshot!(render_to_styled_string(&mut state, 28, 25), @"
     ⓘ[fg:208] [fg:39,bold] [fg:39,bold]A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold]             +[fg:255] —[fg:252] [fg:252]
 
-    ┃[fg:153] ○[fg:114] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]             [fg:252]↑[fg:252] [fg:252]↓[fg:252] [fg:252]󰆴[fg:203]
+    ┃[fg:153] ○[fg:114] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]            [fg:252]↑[fg:252] [fg:252]↓[fg:252] [fg:252]󰆴[fg:203] [fg:203]
        [fg:255] [fg:255]W[fg:255]a[fg:255]i[fg:255]t[fg:255]i[fg:255]n[fg:255]g[fg:255] [fg:255]f[fg:255]o[fg:255]r[fg:255] [fg:255]p[fg:255]r[fg:255]o[fg:255]m[fg:255]p[fg:255]t[fg:255]…[fg:255]
 
      ─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240] [fg:240]U[fg:153]s[fg:153]a[fg:153]g[fg:153]e[fg:153] [fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]─[fg:240]
@@ -849,7 +849,7 @@ fn test_accent_vs_border_inactive_colors() {
     ⓘ[fg:208] [fg:39,bold] [fg:39,bold]A[fg:39,bold]g[fg:39,bold]e[fg:39,bold]n[fg:39,bold]t[fg:39,bold]s[fg:39,bold]             +[fg:255] —[fg:252] [fg:252]
 
     f[fg:153]o[fg:153]c[fg:153]u[fg:153]s[fg:153]e[fg:153]d[fg:153]-[fg:153]r[fg:153]e[fg:153]p[fg:153]o[fg:153]
-    ┃[fg:153] ⠋[fg:221] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]             [fg:252]↑[fg:252] [fg:252]↓[fg:252] [fg:252]󰆴[fg:203]
+    ┃[fg:153] ⠋[fg:221] [fg:174]c[fg:174]l[fg:174]a[fg:174]u[fg:174]d[fg:174]e[fg:174]            [fg:252]↑[fg:252] [fg:252]↓[fg:252] [fg:252]󰆴[fg:203] [fg:203]
 
     u[fg:255]n[fg:255]f[fg:255]o[fg:255]c[fg:255]u[fg:255]s[fg:255]e[fg:255]d[fg:255]-[fg:255]r[fg:255]e[fg:255]p[fg:255]o[fg:255]
       ○[fg:114] [fg:141]c[fg:141]o[fg:141]d[fg:141]e[fg:141]x[fg:141]

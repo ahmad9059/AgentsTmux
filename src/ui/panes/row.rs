@@ -79,7 +79,7 @@ pub(super) fn render_pane_lines_with_ports(
     let mut out: Vec<Line<'static>> = Vec::with_capacity(8);
     let controls = has_agent_controls(selected, width);
     if controls {
-        marker_ctx.inner_width = marker_ctx.inner_width.saturating_sub(6);
+        marker_ctx.inner_width = marker_ctx.inner_width.saturating_sub(7);
     }
     let mut status = status_row(pane, &marker_ctx, icons, spinner_frame, now);
     if controls {
@@ -88,10 +88,10 @@ pub(super) fn render_pane_lines_with_ports(
             apply_bg(Style::default().fg(theme.text_muted)),
         ));
         status.spans.push(Span::styled(
-            "\u{f01b4}",
+            "\u{f01b4} ",
             apply_bg(Style::default().fg(theme.status_error)),
         ));
-        marker_ctx.inner_width += 6;
+        marker_ctx.inner_width += 7;
     }
     out.push(status);
     if let Some(line) = branch_ports_row(git_info, ports, pane.sidebar_spawned, &marker_ctx) {

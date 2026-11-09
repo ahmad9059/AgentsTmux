@@ -25,7 +25,7 @@ fn agent_row_controls_reorder_and_confirm_closing_manual_agents() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                 + — 
     cyber
-      ⠋ commandcode            ↑ ↓ 󰆴
+      ⠋ commandcode           ↑ ↓ 󰆴
       ○ opencode
         Waiting for prompt…
     ");
@@ -49,7 +49,7 @@ fn agent_row_controls_reorder_and_confirm_closing_manual_agents() {
     cyber
       ○ opencode
         Waiting for prompt…
-      ⠋ commandcode            ↑ ↓ 󰆴
+      ⠋ commandcode           ↑ ↓ 󰆴
     ");
     let close = state
         .layout
@@ -58,6 +58,7 @@ fn agent_row_controls_reorder_and_confirm_closing_manual_agents() {
         .find(|target| matches!(target.action, agents_tmux::state::AgentRowAction::Close))
         .unwrap()
         .clone();
+    assert_eq!(close.rect.x, 30, "leave column 31 as right padding");
     state.handle_mouse_click(close.rect.y, close.rect.x);
     assert!(
         matches!(&state.popup, agents_tmux::state::PopupState::RemoveConfirm {pane_id, has_worktree: false, ..} if pane_id == "%501")
@@ -83,7 +84,7 @@ fn universal_spawn_uses_plain_folder_without_duplicate_folder_buttons() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     cyber
-    ┃ ○ opencode           ↑ ↓ 󰆴
+    ┃ ○ opencode          ↑ ↓ 󰆴
         Waiting for prompt…
     ");
     let header = state.layout.spawn_button_col.unwrap();
@@ -391,7 +392,7 @@ fn test_agents_auto_scroll_up_shows_group_header() {
     insta::assert_snapshot!(render_to_string(&mut state, 28, 26), @"
     ⓘ  Agents             + — 
     project
-      ○ claude             ↑ ↓ 󰆴
+      ○ claude            ↑ ↓ 󰆴
         Waiting for prompt…
      ───────── Usage ──────────
            Loading usage…

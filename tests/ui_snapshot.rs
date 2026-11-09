@@ -30,7 +30,7 @@ fn snapshot_single_agent_idle_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ○ claude             ↑ ↓ 󰆴
+    ┃ ○ claude            ↑ ↓ 󰆴
         Waiting for prompt…
      ───────── Usage ──────────
            Loading usage…
@@ -62,7 +62,7 @@ fn snapshot_secondary_header_without_notices() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
      Agents               + — 
-    ┃ ○ claude             ↑ ↓ 󰆴
+    ┃ ○ claude            ↑ ↓ 󰆴
         Waiting for prompt…
      ───────── Usage ──────────
            Loading usage…
@@ -90,7 +90,7 @@ fn snapshot_secondary_header_long_repo_filter_truncated() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  + very-long-repository… 
-    ┃ ○ claude             ↑ ↓ 󰆴
+    ┃ ○ claude            ↑ ↓ 󰆴
         Waiting for prompt…
      ───────── Usage ──────────
            Loading usage…
@@ -122,7 +122,7 @@ fn snapshot_version_banner_does_not_duplicate_in_scroll_area() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ○ claude             ↑ ↓ 󰆴
+    ┃ ○ claude            ↑ ↓ 󰆴
         Waiting for prompt…
     ");
 }
@@ -149,7 +149,7 @@ fn snapshot_single_agent_running_with_elapsed() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     dotfiles
-    ┃ ⠋ claude        2m5s ↑ ↓ 󰆴
+    ┃ ⠋ claude       2m5s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -178,7 +178,7 @@ fn snapshot_long_session_name_truncated_keeps_elapsed_visible() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     dotfiles
-    ┃ ⠋ this-is-a-ri… 2m5s ↑ ↓ 󰆴
+    ┃ ⠋ this-is-a-r… 2m5s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -205,7 +205,7 @@ fn running_spinner_different_frame() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -232,7 +232,7 @@ fn snapshot_agent_with_prompt_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ○ claude             ↑ ↓ 󰆴
+    ┃ ○ claude            ↑ ↓ 󰆴
         fix the bug
      ───────── Usage ──────────
            Loading usage…
@@ -260,7 +260,7 @@ fn snapshot_agent_with_japanese_prompt_ui() {
     let output = render_to_string(&mut state, 28, 27);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
         こ れ っ て 今 1時 間 経 っ て い
         る け ど 、 起 動 し て 確 認 し て
         も 問 題 な い ？
@@ -330,7 +330,7 @@ fn snapshot_two_agents_same_window_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
         fix the bug
      ───────── Usage ──────────
            Loading usage…
@@ -375,7 +375,7 @@ fn snapshot_two_windows_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project-a
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -422,7 +422,7 @@ fn snapshot_multi_session_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     dotfiles
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -449,7 +449,7 @@ fn snapshot_wait_reason_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ● claude             ↑ ↓ 󰆴
+    ┃ ● claude            ↑ ↓ 󰆴
         permission required
      ───────── Usage ──────────
            Loading usage…
@@ -477,7 +477,7 @@ fn snapshot_auto_rename_window_title_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ○ claude             ↑ ↓ 󰆴
+    ┃ ○ claude            ↑ ↓ 󰆴
         Waiting for prompt…
      ───────── Usage ──────────
            Loading usage…
@@ -505,7 +505,7 @@ fn snapshot_usage_tab_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
      ───────── Usage ──────────
      Claude Code · max
      5h ██████████░ 2h 00m  91%
@@ -535,7 +535,7 @@ fn snapshot_usage_tab_opencode_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ opencode           ↑ ↓ 󰆴
+    ┃ ⠋ opencode          ↑ ↓ 󰆴
      ───────── Usage ──────────
      OpenCode
      Using   commandcode
@@ -569,7 +569,7 @@ fn snapshot_prompt_wrapping_ui() {
     let output = render_to_string(&mut state, 28, 27);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ○ claude             ↑ ↓ 󰆴
+    ┃ ○ claude            ↑ ↓ 󰆴
         Please fix the
         authentication bug in
         the login flow that cau…
@@ -627,7 +627,7 @@ fn snapshot_error_state_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ◉ claude             ↑ ↓ 󰆴
+    ┃ ◉ claude            ↑ ↓ 󰆴
         something broke
      ───────── Usage ──────────
            Loading usage…
@@ -703,7 +703,7 @@ fn snapshot_worktree_branch_ui() {
     let output = render_to_string(&mut state, 28, 26);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
     ┃   + feature/sidebar
         fix bug
      ───────── Usage ──────────
@@ -806,7 +806,7 @@ fn snapshot_task_progress_all_completed_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
         ✔✔ 2/2
      ───────── Usage ──────────
            Loading usage…
@@ -831,7 +831,7 @@ fn snapshot_task_progress_all_pending_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
         ◻◻◻ 0/3
      ───────── Usage ──────────
            Loading usage…
@@ -874,7 +874,7 @@ fn snapshot_all_elements_combined_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
     project
-    ┃ ● claude auto          ↑ ↓ 󰆴
+    ┃ ● claude auto         ↑ ↓ 󰆴
     ┃   main
         ✔◼ 1/2
         ├ Explore #1
@@ -899,7 +899,7 @@ fn snapshot_response_japanese_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
     project
-    ┃ ○ claude               ↑ ↓ 󰆴
+    ┃ ○ claude              ↑ ↓ 󰆴
       ▷ 修 正 が 完 了 し ま し た 。 テ ス ト
         も 全 て 通 っ て い ま す 。
      ────────── Usage ───────────
@@ -932,7 +932,7 @@ fn snapshot_three_groups_middle_focused_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     repo-a
-      ⠋ claude             ↑ ↓ 󰆴
+      ⠋ claude            ↑ ↓ 󰆴
     repo-b
     ┃ ○ codex
         Waiting for prompt…
@@ -957,7 +957,7 @@ fn snapshot_bypass_all_badge_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ claude !           ↑ ↓ 󰆴
+    ┃ ⠋ claude !          ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -974,7 +974,7 @@ fn snapshot_full_auto_badge_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ claude auto        ↑ ↓ 󰆴
+    ┃ ⠋ claude auto       ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -991,7 +991,7 @@ fn snapshot_plan_badge_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ claude plan        ↑ ↓ 󰆴
+    ┃ ⠋ claude plan       ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -1008,7 +1008,7 @@ fn snapshot_accept_edits_badge_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ claude edit        ↑ ↓ 󰆴
+    ┃ ⠋ claude edit       ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -1035,7 +1035,7 @@ fn snapshot_response_with_branch_ui() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                   + — 
     project
-    ┃ ○ claude                   ↑ ↓ 󰆴
+    ┃ ○ claude                  ↑ ↓ 󰆴
     ┃   feature/ui-v2
       ▷ Done. All tests are green.
      ──────────── Usage ─────────────
@@ -1055,7 +1055,7 @@ fn snapshot_wait_reason_elicitation_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ● claude             ↑ ↓ 󰆴
+    ┃ ● claude            ↑ ↓ 󰆴
         waiting for selection
      ───────── Usage ──────────
            Loading usage…
@@ -1072,7 +1072,7 @@ fn snapshot_wait_reason_unknown_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ● claude             ↑ ↓ 󰆴
+    ┃ ● claude            ↑ ↓ 󰆴
         some_future_reason
      ───────── Usage ──────────
            Loading usage…
@@ -1091,7 +1091,7 @@ fn snapshot_wait_reason_permission_denied_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ● claude             ↑ ↓ 󰆴
+    ┃ ● claude            ↑ ↓ 󰆴
         permission denied
      ───────── Usage ──────────
            Loading usage…
@@ -1118,7 +1118,7 @@ fn snapshot_worktree_with_name_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
     ┃   + auth-wt: feat/auth
      ───────── Usage ──────────
            Loading usage…
@@ -1143,7 +1143,7 @@ fn snapshot_worktree_name_same_as_branch_ui() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ⠋ claude             ↑ ↓ 󰆴
+    ┃ ⠋ claude            ↑ ↓ 󰆴
     ┃   + feat/auth
      ───────── Usage ──────────
            Loading usage…
@@ -1189,7 +1189,7 @@ fn right_border_narrow_width_with_badge() {
     let output = render_to_string(&mut state, 22, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents       + — 
-    ┃ ⠋ cl… ! 2h0m0s ↑ ↓ 󰆴
+    ┃ ⠋ c… ! 2h0m0s ↑ ↓ 󰆴
         fix the issue
      ────── Usage ───────
         Loading usage…
@@ -1237,84 +1237,84 @@ fn right_border_all_permission_modes_and_agents() {
     === Claude / Default ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ claude    1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ claude   1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / Auto ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ cla… auto 1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ cl… auto 1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / DontAsk ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ … dontAsk 1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋  dontAsk 1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / Plan ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ cla… plan 1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ cl… plan 1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / AcceptEdits ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ cla… edit 1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ cl… edit 1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Claude / BypassPermissions ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ claude !  1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ claude ! 1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / Default ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ codex     1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ codex    1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / Auto ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ cod… auto 1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ co… auto 1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / DontAsk ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ … dontAsk 1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋  dontAsk 1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / Plan ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ cod… plan 1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ co… plan 1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / AcceptEdits ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ cod… edit 1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ co… edit 1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
 
     === Codex / BypassPermissions ===
     ⓘ  Agents             + — 
     project
-    ┃ ⠋ codex !   1h30m32s ↑ ↓ 󰆴
+    ┃ ⠋ codex !  1h30m32s ↑ ↓ 󰆴
      ───────── Usage ──────────
            Loading usage…
     ");
@@ -1338,7 +1338,7 @@ fn snapshot_filter_bar_shows_counts() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
     project
-    ┃ ⠋ claude               ↑ ↓ 󰆴
+    ┃ ⠋ claude              ↑ ↓ 󰆴
      ────────── Usage ───────────
             Loading usage…
     ");
@@ -1361,7 +1361,7 @@ fn snapshot_filter_running_hides_idle() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
     project
-    ┃ ⠋ claude               ↑ ↓ 󰆴
+    ┃ ⠋ claude              ↑ ↓ 󰆴
      ────────── Usage ───────────
             Loading usage…
     ");
@@ -1383,7 +1383,7 @@ fn snapshot_filter_idle_hides_running() {
     let output = render_to_string(&mut state, 30, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-      ○ codex                ↑ ↓ 󰆴
+      ○ codex               ↑ ↓ 󰆴
         Waiting for prompt…
      ────────── Usage ───────────
             Loading usage…
@@ -1410,7 +1410,7 @@ fn snapshot_filter_hides_empty_groups() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
     repo-a
-    ┃ ⠋ claude               ↑ ↓ 󰆴
+    ┃ ⠋ claude              ↑ ↓ 󰆴
      ────────── Usage ───────────
             Loading usage…
     ");
@@ -1433,7 +1433,7 @@ fn snapshot_filter_all_shows_everything() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
     project
-    ┃ ⠋ claude               ↑ ↓ 󰆴
+    ┃ ⠋ claude              ↑ ↓ 󰆴
       ○ codex
         Waiting for prompt…
      ────────── Usage ───────────
@@ -1517,7 +1517,7 @@ fn snapshot_filter_error_shows_agents() {
     let output = render_to_string(&mut state, 30, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    ┃ ◉ claude               ↑ ↓ 󰆴
+    ┃ ◉ claude              ↑ ↓ 󰆴
         something broke
      ────────── Usage ───────────
             Loading usage…
@@ -1541,7 +1541,7 @@ fn snapshot_filter_waiting_shows_only_waiting() {
     let output = render_to_string(&mut state, 30, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
-    ┃ ● claude               ↑ ↓ 󰆴
+    ┃ ● claude              ↑ ↓ 󰆴
         permission required
      ────────── Usage ───────────
             Loading usage…
@@ -1587,7 +1587,7 @@ fn snapshot_universal_spawn_button_is_not_duplicated_on_repo_header() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
     proj
-    ┃ ○ claude               ↑ ↓ 󰆴
+    ┃ ○ claude              ↑ ↓ 󰆴
     ┃   main
         Waiting for prompt…
      ────────── Usage ───────────
@@ -1605,7 +1605,7 @@ fn snapshot_spawn_modal_default_state() {
     ⓘ  Agents                   + — 
      ╭ New agent ───────────────────╮
     p│                              │
-    ┃│ FOLDER                       │󰆴
+    ┃│ FOLDER                       │
     ┃│ /home/u/proj█                │
      │ AGENT                        │
      │ claude                       │
@@ -1630,7 +1630,7 @@ fn snapshot_spawn_modal_centers_for_selected_repository() {
     ⓘ  Agents                   + — 
      ╭ New agent ───────────────────╮
     p│                              │
-    ┃│ FOLDER                       │󰆴
+    ┃│ FOLDER                       │
     ┃│ /home/u/proj█                │
      │ AGENT                        │
      │ claude                       │
@@ -1659,7 +1659,7 @@ fn snapshot_spawn_modal_advance_fields_cycles_agent_and_mode() {
     ⓘ  Agents                   + — 
      ╭ New agent ───────────────────╮
     p│                              │
-    ┃│ FOLDER                       │󰆴
+    ┃│ FOLDER                       │
     ┃│ /home/u/projadd login        │
      │ AGENT                        │
      │ codex                        │
@@ -1684,7 +1684,7 @@ fn snapshot_spawn_modal_tail_fits_long_task_name() {
     ⓘ  Agents                   + — 
      ╭ New agent ───────────────────╮
     p│                              │
-    ┃│ FOLDER                       │󰆴
+    ┃│ FOLDER                       │
     ┃│ …re-authentication-pipeline█ │
      │ AGENT                        │
      │ claude                       │
@@ -1736,7 +1736,7 @@ fn snapshot_spawn_modal_compact_layout_in_short_agent_area() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                         + — 
     proj╭ New agent ───────────────────╮
-    ┃ ○ │ /home/u/projhi█              │ ↓ 󰆴
+    ┃ ○ │ /home/u/projhi█              │↓ 󰆴
     ┃   │ claude                       │
         │ default                      │
         ╰──────────────────────────────╯
@@ -1756,7 +1756,7 @@ fn snapshot_spawn_modal_compact_layout_shows_inline_error() {
     ⓘ  Agents                         + — 
         ╭ New agent ───────────────────╮
     proj│ /home/u/proj█                │
-    ┃ ○ │ claude                       │ ↓ 󰆴
+    ┃ ○ │ claude                       │↓ 󰆴
     ┃   │ default                      │
         │ not a folder: /home/u/proj   │
         ╰──────────────────────────────╯
@@ -1803,7 +1803,7 @@ fn snapshot_sidebar_spawned_pane_appends_trailing_remove_marker() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
     proj
-    ┃ ○ claude               ↑ ↓ 󰆴
+    ┃ ○ claude              ↑ ↓ 󰆴
     ┃   + main
         Waiting for prompt…
       ○ claude
@@ -1941,7 +1941,7 @@ fn snapshot_sidebar_spawned_long_branch_truncates_and_keeps_x() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents         + — 
     proj
-      ○ claude         ↑ ↓ 󰆴
+      ○ claude        ↑ ↓ 󰆴
         + feature/really-l…×
         Waiting for prompt…
      ─────── Usage ────────
@@ -1982,7 +1982,7 @@ fn snapshot_sidebar_spawned_coexists_with_port_display() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents               + — 
     proj
-      ○ claude               ↑ ↓ 󰆴
+      ○ claude              ↑ ↓ 󰆴
         + feat/srv         :3000 ×
         Waiting for prompt…
      ────────── Usage ───────────
@@ -2005,7 +2005,7 @@ fn snapshot_remove_confirm_modal_shows_three_options() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                                   + — 
     proj
-    ┃ ○ claude                                   ↑ ↓ 󰆴
+    ┃ ○ claude                                  ↑ ↓ 󰆴
     ┃   main   ╭ add-login ───────────────╮
         Waiting│[y] remove worktree       │
                │[c] close window only     │
@@ -2029,7 +2029,7 @@ fn snapshot_spawn_modal_shows_inline_error_when_task_empty() {
     insta::assert_snapshot!(output, @"
     ⓘ╭ New agent ───────────────────╮
     p│ FOLDER                       │
-    ┃│ /home/u/proj█                │󰆴
+    ┃│ /home/u/proj█                │
     ┃│                              │
      │ AGENT                        │
      │ claude                       │
@@ -2074,7 +2074,7 @@ fn snapshot_remove_confirm_modal_shows_inline_error() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                                   + — 
     proj
-    ┃ ○ claude ╭ add-login ───────────────╮      ↑ ↓ 󰆴
+    ┃ ○ claude ╭ add-login ───────────────╮     ↑ ↓ 󰆴
     ┃   main   │[y] remove worktree       │
         Waiting│[c] close window only     │
                │[n] cancel                │
@@ -2106,7 +2106,7 @@ fn snapshot_background_status_shows_bg_command_row() {
     let output = render_to_string(&mut state, 32, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                 + — 
-    ┃ ⠁ claude                 ↑ ↓ 󰆴
+    ┃ ⠁ claude                ↑ ↓ 󰆴
         $ npm run dev
      ─────────── Usage ────────────
              Loading usage…
@@ -2135,7 +2135,7 @@ fn snapshot_running_pane_still_shows_live_bg_command() {
     let output = render_to_string(&mut state, 32, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                 + — 
-    ┃ ⠋ claude             10s ↑ ↓ 󰆴
+    ┃ ⠋ claude            10s ↑ ↓ 󰆴
         $ cargo watch
      ─────────── Usage ────────────
              Loading usage…
@@ -2163,7 +2163,7 @@ fn snapshot_background_long_command_truncates_with_ellipsis() {
     let output = render_to_string(&mut state, 28, 25);
     insta::assert_snapshot!(output, @"
     ⓘ  Agents             + — 
-    ┃ ⠁ claude             ↑ ↓ 󰆴
+    ┃ ⠁ claude            ↑ ↓ 󰆴
         $ cargo run --bin very-…
      ───────── Usage ──────────
            Loading usage…
@@ -2185,7 +2185,7 @@ fn snapshot_remove_confirm_modal_for_a_plain_folder_agent_offers_only_close() {
     insta::assert_snapshot!(output, @"
     ⓘ  Agents                                   + — 
     proj
-    ┃ ○ claude                                   ↑ ↓ 󰆴
+    ┃ ○ claude                                  ↑ ↓ 󰆴
     ┃   main
         Waiting╭ app ─────────────────────╮
                │[y] close agent window    │
